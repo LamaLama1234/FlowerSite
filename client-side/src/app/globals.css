@@ -1,4 +1,6 @@
-@import "tailwindcss";
+/* source("../") — ограничиваем авто-детект контента Tailwind папкой src,
+   чтобы движок не сканировал корень монорепо (server-side, uploads и т.п.). */
+@import "tailwindcss" source("../");
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
