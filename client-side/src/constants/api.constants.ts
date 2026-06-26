@@ -3,6 +3,8 @@ export const API_URL =
 
 export const getAuthUrl = (path = "") => `/auth${path}`;
 export const getUsersUrl = (path = "") => `/users${path}`;
+export const getProductsUrl = (path = "") => `/products${path}`;
+export const getCategoriesUrl = (path = "") => `/categories${path}`;
 
 /** Полный URL OAuth-эндпоинта бэкенда — для full-page редиректа. */
 export const getOAuthUrl = (provider: "google" | "yandex") =>

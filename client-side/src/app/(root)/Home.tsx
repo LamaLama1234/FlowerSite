@@ -26,7 +26,7 @@ export function Home() {
 
           <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
             <Button asChild size="lg" className="h-11 px-6 text-base">
-              <Link href="/dashboard">
+              <Link href="/catalog">
                 Перейти в каталог
                 <ArrowRight className="size-4" />
               </Link>

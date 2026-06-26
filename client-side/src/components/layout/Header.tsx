@@ -40,6 +40,12 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-3">
+          <Link
+            href="/catalog"
+            className="text-muted-foreground hover:text-foreground text-sm font-medium"
+          >
+            Каталог
+          </Link>
           {user ? (
             <>
               <Link

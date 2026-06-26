@@ -1,10 +1,10 @@
+// Соответствует модели Category в Prisma (server-side).
 export interface ICategory {
-    id: string;
-    createdAt: string; 
-    title: string;
-    description: string;
-    imageUrl: string;
-    slug: string; 
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  title: string;
+  description: string;
 }
 
-export type ICategoryInput = Pick<ICategory, 'title' | 'description' | 'imageUrl' | 'slug'>;
+export type ICategoryInput = Pick<ICategory, "title" | "description">;
