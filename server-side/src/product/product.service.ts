@@ -11,7 +11,7 @@ export class ProductService {
 
     constructor(private prisma: PrismaService) {}
 
-    async getAll(userRole?: string, searchTerm?: string) {
+    async getAll(searchTerm?: string, userRole?: string) {
         const whereClause: any = searchTerm ? {
             OR: [
                 { title: { contains: searchTerm, mode: 'insensitive' } },
