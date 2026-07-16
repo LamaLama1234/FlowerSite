@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import type { AxiosError } from "axios";
 import { Leaf } from "lucide-react";
 import toast from "react-hot-toast";
 import { FcGoogle } from "react-icons/fc";
@@ -13,20 +12,11 @@ import { Button } from "@/components/ui/button";
 import { getOAuthUrl } from "@/constants/api.constants";
 import { authService } from "@/services/auth.service";
 import type { IAuthForm } from "@/shared/types/auth.interface";
+import { extractErrorMessage } from "@/utils/errors";
 
 type AuthType = "login" | "register";
 
 const EMPTY_FORM: IAuthForm = { name: "", email: "", password: "" };
-
-/** Достаём человекочитаемое сообщение из ошибки бэкенда. */
-function extractError(error: unknown): string {
-  const axiosError = error as AxiosError<{ message?: string | string[] }>;
-  const message = axiosError?.response?.data?.message;
-
-  if (Array.isArray(message)) return message.join(", ");
-  if (typeof message === "string") return message;
-  return "Что-то пошло не так. Попробуйте ещё раз.";
-}
 
 export function Auth() {
   const router = useRouter();
@@ -44,7 +34,7 @@ export function Auth() {
       router.push("/dashboard");
     },
     onError(error) {
-      toast.error(extractError(error));
+      toast.error(extractErrorMessage(error));
     },
   });
 

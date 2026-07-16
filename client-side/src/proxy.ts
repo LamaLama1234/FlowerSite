@@ -9,9 +9,10 @@ export function proxy(request: NextRequest) {
   const accessToken = request.cookies.get(ACCESS_TOKEN)?.value;
 
   const isAuthPage = nextUrl.pathname.startsWith("/auth");
-  // OAuth-возврат: бэкенд редиректит на /dashboard?accessToken=... — cookie
-  // ещё не выставлена, пропускаем запрос, токен сохранит сама страница.
-  const isOAuthReturn = nextUrl.searchParams.has("accessToken");
+  // OAuth-возврат: бэкенд редиректит на /dashboard?code=... с одноразовым
+  // кодом обмена (не JWT) — cookie ещё не выставлена, пропускаем запрос,
+  // страница сама обменяет код на токен через /auth/oauth/exchange.
+  const isOAuthReturn = nextUrl.searchParams.has("code");
   const isLoggedIn = Boolean(accessToken) || isOAuthReturn;
 
   // Залогиненного со страницы авторизации уводим в кабинет.
@@ -31,5 +32,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth"],
+  matcher: ["/dashboard/:path*", "/auth", "/checkout", "/admin"],
 };

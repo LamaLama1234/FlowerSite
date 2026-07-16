@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ValidationPipe, UseGuards } from '@nestjs/common'
+import { Controller, Get, Param, ValidationPipe, UseGuards, Post } from '@nestjs/common'
 import { CategoryService } from './category.service'
 import { Auth } from 'src/auth/decorators/auth.decorator'
 import { Body, Delete, HttpCode, Put, UsePipes } from '@nestjs/common'
@@ -11,11 +11,29 @@ import { CurrentUser } from 'src/user/decorators/user.decorator'
 export class CategoryController {
 	constructor(private readonly categoryService: CategoryService) {}
 
+	@Get()
+	async getAll() {
+		return this.categoryService.getAll()
+	}
+
 	@Auth()
 	@Get('by-id/:id')
 	async getById(@Param('id') id: string) {
 		return this.categoryService.getById(id)
 	}
+
+	@UseGuards(RolesGuard)
+    @Roles('ADMIN')
+	@UsePipes(new ValidationPipe())
+	@HttpCode(200)
+	@Auth()
+	@Post()
+	async create(
+        @Body() dto: CategoryDto,
+        @CurrentUser('role') userRole: string
+    ) {
+        return this.categoryService.create(dto, userRole)
+    }
 
 	@UseGuards(RolesGuard)
     @Roles('ADMIN')

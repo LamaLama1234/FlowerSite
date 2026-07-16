@@ -11,7 +11,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-playfair);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,6 +48,17 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Матовое золото Celestial Luxury — приглушённый тон старой латуни,
+     сознательно менее яркий/насыщенный, чем стандартный Tailwind amber. */
+  --color-gold-50: var(--gold-50);
+  --color-gold-100: var(--gold-100);
+  --color-gold-200: var(--gold-200);
+  --color-gold-300: var(--gold-300);
+  --color-gold-400: var(--gold-400);
+  --color-gold-500: var(--gold-500);
+  --color-gold-600: var(--gold-600);
+  --color-gold-700: var(--gold-700);
 }
 
 :root {
@@ -83,6 +94,15 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+
+  --gold-50: #fbf6ea;
+  --gold-100: #f3e6c8;
+  --gold-200: #e8d2a0;
+  --gold-300: #d9bc77;
+  --gold-400: #c5a572;
+  --gold-500: #b8935b;
+  --gold-600: #96773f;
+  --gold-700: #7a5f32;
 }
 
 .dark {
@@ -117,6 +137,16 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+
+  /* Чуть светлее/насыщеннее, чем в светлой теме — для читаемости на тёмном фоне */
+  --gold-50: #4a3b22;
+  --gold-100: #6b5730;
+  --gold-200: #8c733d;
+  --gold-300: #ad9053;
+  --gold-400: #cbab6c;
+  --gold-500: #ddc389;
+  --gold-600: #ecdcb2;
+  --gold-700: #f6ecd6;
 }
 
 @layer base {
@@ -129,4 +159,81 @@
   html {
     @apply font-sans;
   }
+}
+
+/* ---------- Celestial Luxury: общие декоративные примитивы ---------- */
+
+/* Стеклянная панель — единая точка для всех "glass" поверхностей сайта. */
+@utility glass-panel {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(232, 210, 160, 0.45);
+  box-shadow: 0 8px 32px -12px rgba(184, 147, 91, 0.25);
+}
+
+.dark .glass-panel {
+  background-color: rgba(20, 20, 20, 0.45);
+  border-color: rgba(197, 165, 114, 0.25);
+}
+
+/* Едва заметный узор из мелких ромбов — фон крупных секций. */
+@utility bg-celestial-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M28 6 L34 28 L28 50 L22 28 Z' fill='%23B8935B' fill-opacity='0.05'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+@keyframes celestial-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
+
+@keyframes celestial-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes celestial-shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 250% 0;
+  }
+}
+
+@utility animate-celestial-twinkle {
+  animation: celestial-twinkle 3.2s ease-in-out infinite;
+}
+
+@utility animate-celestial-float {
+  animation: celestial-float 5s ease-in-out infinite;
+}
+
+/* Диагональный блик — применять вместе с animate-celestial-shimmer на hover. */
+@utility bg-celestial-shimmer {
+  background-image: linear-gradient(
+    110deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+}
+
+@utility animate-celestial-shimmer {
+  animation: celestial-shimmer 1.4s ease-in-out;
 }

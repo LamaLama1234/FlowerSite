@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common'
 import { OrderService } from './order.service'
 import { Auth } from 'src/auth/decorators/auth.decorator'
-import { CurrentUser } from 'src/auth/decorators/user.decorator'
+import { CurrentUser } from 'src/user/decorators/user.decorator'
 import { OrderDto } from './dto/order.dto' // Твой DTO
 import { Roles } from '../auth/decorators/roles.decorator'
 import { RolesGuard } from '../auth/guards/roles.guard'
@@ -34,8 +34,13 @@ export class OrderController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles('ADMIN', 'WORKER')
     @Get()
-    async getAll(@CurrentUser() user: { id: string; role: string }, @Query('searchTerm') searchTerm?: string) {
-        return this.orderService.getAll(user, searchTerm);
+    async getAll(
+        @CurrentUser() user: { id: string; role: string },
+        @Query('searchTerm') searchTerm?: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.orderService.getAll(user, searchTerm, page, limit);
     }
 
     @UseGuards(AuthGuard('jwt'))

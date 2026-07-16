@@ -30,6 +30,20 @@ export const authService = {
     return response;
   },
 
+  /** Обменивает одноразовый код OAuth-возврата на access-токен. */
+  async exchangeOAuthCode(code: string) {
+    const response = await axiosClassic.post<{ accessToken: string }>(
+      getAuthUrl("/oauth/exchange"),
+      { code },
+    );
+
+    if (response.data.accessToken) {
+      saveTokenStorage(response.data.accessToken);
+    }
+
+    return response;
+  },
+
   async logout() {
     const response = await axiosClassic.post<boolean>(getAuthUrl("/logout"));
 

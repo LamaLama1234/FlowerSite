@@ -10,6 +10,8 @@ import { PrismaService } from '../prisma.service'
 import { AuthDto } from './dto/auth.dto'
 import { ConfigService } from '@nestjs/config/dist/config.service'
 import { Response } from 'express'
+import { verify } from 'argon2'
+import { User } from '@prisma/client'
 
 @Injectable()
 export class AuthService {
@@ -28,7 +30,7 @@ export class AuthService {
 
 		const tokens = this.issueToken(user.id)
 
-		return { user, ...tokens }
+		return { user: this.sanitizeUser(user), ...tokens }
 	}
 
 	async register(dto: AuthDto) {
@@ -43,7 +45,7 @@ export class AuthService {
 
 		const tokens = this.issueToken(user.id)
 
-		return { user, ...tokens }
+		return { user: this.sanitizeUser(user), ...tokens }
 	}
 
 	async getNewTokens(refreshToken: string) {
@@ -58,6 +60,7 @@ export class AuthService {
 
 		const tokens = this.issueToken(user.id)
 
+		// userService.getById уже возвращает пользователя без пароля
 		return { user, ...tokens }
 	}
 
@@ -76,7 +79,24 @@ export class AuthService {
 	private async validateUser(dto: AuthDto) {
 		const user = await this.userService.getByEmail(dto.email)
 		if (!user) throw new NotFoundException('Пользователь не найден')
+
+		if (!user.password) {
+			throw new UnauthorizedException(
+				'Вход по паролю недоступен для этого аккаунта'
+			)
+		}
+
+		const isPasswordValid = await verify(user.password, dto.password)
+		if (!isPasswordValid) {
+			throw new UnauthorizedException('Неверный пароль')
+		}
+
 		return user
+	}
+
+	private sanitizeUser(user: User) {
+		const { password: _password, ...safeUser } = user
+		return safeUser
 	}
 
 	async validateOAuthUser(req: {
@@ -103,7 +123,7 @@ export class AuthService {
 		}
 		const tokens = this.issueToken(user.id)
 
-		return { user, ...tokens }
+		return { user: this.sanitizeUser(user), ...tokens }
 	}
 
 	addRefreshTokenToResponse(res: Response, refreshToken: string) {

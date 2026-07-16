@@ -9,6 +9,7 @@ import { EnumDeliveryType } from '@prisma/client'
 import { YooCheckout, ICreatePayment } from '@a2seven/yoo-checkout'
 import { v4 as uuidv4 } from 'uuid'
 import { TelegramService } from 'src/telegram/telegram.service'
+import { parsePagination } from 'src/common/pagination'
 
 @Injectable()
 export class OrderService {
@@ -69,8 +70,17 @@ export class OrderService {
     }
 
     async handleWebhook(data: any) {
-        if (data.event === 'payment.succeeded') {
-            const orderId = data.object.metadata?.orderId;
+        const paymentId = data?.object?.id;
+        if (data?.event === 'payment.succeeded' && paymentId) {
+            // Не доверяем телу вебхука напрямую — оно может быть подделано.
+            // Запрашиваем актуальный статус платежа у самой ЮKassa по её API,
+            // используя наш секретный ключ, и доверяем только этому ответу.
+            const payment = await this.checkout.getPayment(paymentId);
+            if (payment.status !== 'succeeded') {
+                return { status: 'ok' };
+            }
+
+            const orderId = payment.metadata?.orderId;
             if (!orderId) return { status: 'error' };
 
             // 1. Обновляем статус на Оплачено (CONFIRMED)
@@ -88,39 +98,51 @@ export class OrderService {
                 }
             });
 
-            // 3. Рассылаем уведомление об оплате и обновляем их основной список
-            for (const worker of workers) {
-                if (worker.telegramId) {
-                    // Опционально: короткое уведомление, что заказ оплачен
-                    await this.telegramService.sendNewOrderAlert({
-                        ...updatedOrder,
-                        customMessage: `💰 Заказ #${orderId.slice(-6)} успешно оплачен!` 
-                    });
-                    // Список обновится автоматически внутри sendNewOrderAlert или вызови отдельно:
-                    // await this.telegramService.sendOrdersList(worker.telegramId);
+            // 3. Рассылаем уведомление об оплате — не ждём отправку, чтобы
+            // не задерживать ответ вебхука ЮKassa; ошибка у одного воркера
+            // не должна прерывать рассылку остальным.
+            void (async () => {
+                for (const worker of workers) {
+                    if (!worker.telegramId) continue;
+                    try {
+                        // Опционально: короткое уведомление, что заказ оплачен
+                        await this.telegramService.sendNewOrderAlert({
+                            ...updatedOrder,
+                            customMessage: `💰 Заказ #${orderId.slice(-6)} успешно оплачен!`
+                        });
+                        // Список обновится автоматически внутри sendNewOrderAlert или вызови отдельно:
+                        // await this.telegramService.sendOrdersList(worker.telegramId);
+                    } catch (error) {
+                        console.error(`Не удалось отправить Telegram-уведомление об оплате воркеру ${worker.id}:`, error);
+                    }
                 }
-            }
-            
+            })();
+
             return { status: 'ok' };
         }
         return { status: 'ok' };
     }
 
-    async getAll(user: { id: string, role: string }, searchTerm?: string) {
-        const whereClause: Prisma.OrderWhereInput = searchTerm 
+    async getAll(user: { id: string, role: string }, searchTerm?: string, page?: string, limit?: string) {
+        const whereClause: Prisma.OrderWhereInput = searchTerm
             ? { customerName: { contains: searchTerm, mode: 'insensitive' } }: {}
 
-        if (user.role === 'ADMIN') 
-            return this.prisma.order.findMany({ 
-                where: whereClause,
-                include: { items: { include: { product: true } } } // Добавлено
-            })
         const filter = user.role === 'USER' ? { userId: user.id } : {}
-        
-        return this.prisma.order.findMany({ 
-            where: { ...whereClause, ...filter },
-            include: { items: { include: { product: true } } } // Добавлено
-        });
+        const finalWhere = { ...whereClause, ...filter }
+        const pagination = parsePagination(page, limit)
+
+        const [items, total] = await Promise.all([
+            this.prisma.order.findMany({
+                where: finalWhere,
+                include: { items: { include: { product: true } } }, // Добавлено
+                orderBy: { createdAt: 'desc' },
+                skip: pagination.skip,
+                take: pagination.limit
+            }),
+            this.prisma.order.count({ where: finalWhere })
+        ])
+
+        return { items, total, page: pagination.page, limit: pagination.limit }
     }
 
     async getById(id: string, user: { id: string, role: string }) {
@@ -182,9 +204,11 @@ export class OrderService {
             include: { items: { include: { product: true } } }
         });
 
-        // Вызываем метод алертов, который мы написали в TelegramService
-        // Он отправит уведомление и сразу подгрузит обновленный список
-        await this.telegramService.sendNewOrderAlert(order);
+        // Не ждём отправку в Telegram — она не должна задерживать ответ
+        // клиенту и не должна валить создание заказа при сбое бота.
+        this.telegramService.sendNewOrderAlert(order).catch((error) => {
+            console.error('Не удалось отправить уведомление в Telegram о новом заказе:', error);
+        });
 
         return order;
     }
@@ -195,14 +219,20 @@ export class OrderService {
     if (user.role !== 'ADMIN' && order.status !== 'PENDING') {
             throw new ForbiddenException('Заказ можно менять только в статусе ожидания');
     }
-    
-    const { items, ...orderData } = dto;
+
+    const { items, status, ...orderData } = dto;
+
+    if (status !== undefined && user.role !== 'ADMIN' && user.role !== 'WORKER') {
+        throw new ForbiddenException('Изменение статуса заказа недоступно');
+    }
+
     const itemsData = items ? await this.mapItemsWithPrice(items) : undefined;
     const total = itemsData ? itemsData.reduce((sum, item) => sum + (item.price * item.quantity), 0) : undefined;
     return this.prisma.order.update({
         where: { id: orderId },
         data: {
             ...orderData,
+            ...(status !== undefined ? { status } : {}),
             total,
             items: itemsData ? {
                 deleteMany: {}, // Удаляем старые

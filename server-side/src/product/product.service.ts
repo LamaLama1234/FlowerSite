@@ -2,16 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { EnumOrderStatus } from '@prisma/client'
 import { PrismaService } from 'src/prisma.service'
 import { ProductDto } from './dto/product.dto'
-
-
-
+import { parsePagination } from 'src/common/pagination'
 
 @Injectable()
 export class ProductService {
 
     constructor(private prisma: PrismaService) {}
 
-    async getAll(searchTerm?: string, userRole?: string) {
+    async getAll(searchTerm?: string, userRole?: string, page?: string, limit?: string, categoryId?: string) {
         const whereClause: any = searchTerm ? {
             OR: [
                 { title: { contains: searchTerm, mode: 'insensitive' } },
@@ -21,28 +19,27 @@ export class ProductService {
 
         // Если это не админ, можно добавить логику: например, не показывать товары с price: 0 (черновики)
         if (userRole !== 'ADMIN') {
-            whereClause.price = { gt: 0 }; 
+            whereClause.price = { gt: 0 };
         }
 
-        return this.prisma.product.findMany({
-            where: whereClause,
-            include: { category: true },
-            orderBy: { createdAt: 'desc' }
-        });
-    }
+        if (categoryId) {
+            whereClause.categoryId = categoryId;
+        }
 
-    private async getSearchTermFilter(searchTerm: string) {
-    return this.prisma.product.findMany({
-        where: {
-            OR: [
-                { title: { contains: searchTerm, mode: 'insensitive' } },
-                { description: { contains: searchTerm, mode: 'insensitive' } }
-            ]
-        },
-        include: {
-            category: true
-            }
-        })
+        const pagination = parsePagination(page, limit);
+
+        const [items, total] = await Promise.all([
+            this.prisma.product.findMany({
+                where: whereClause,
+                include: { category: true },
+                orderBy: { createdAt: 'desc' },
+                skip: pagination.skip,
+                take: pagination.limit
+            }),
+            this.prisma.product.count({ where: whereClause })
+        ]);
+
+        return { items, total, page: pagination.page, limit: pagination.limit };
     }
 
 	async getById(id: string) {

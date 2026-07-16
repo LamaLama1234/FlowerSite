@@ -14,11 +14,20 @@ import {
 import { AuthService } from './auth.service'
 import { AuthDto } from './dto/auth.dto'
 import type { Request, Response } from 'express'
+import { ConfigService } from '@nestjs/config'
+import { OAuthExchangeService } from './oauth-exchange.service'
+import { OAuthStateGuard, OAUTH_STATE_COOKIE } from './guards/oauth-state.guard'
+import { GoogleOAuthInitGuard } from './guards/google-oauth-init.guard'
+import { YandexOAuthInitGuard } from './guards/yandex-oauth-init.guard'
 import { AuthGuard } from '@nestjs/passport'
 
 @Controller('auth')
 export class AuthController {
-	constructor(private readonly authService: AuthService) {}
+	constructor(
+		private readonly authService: AuthService,
+		private readonly oauthExchangeService: OAuthExchangeService,
+		private readonly configService: ConfigService
+	) {}
 
 	@UsePipes(new ValidationPipe())
 	@HttpCode(200)
@@ -83,37 +92,26 @@ export class AuthController {
 	}
 
 	@Get('google')
-	@UseGuards(AuthGuard('google'))
+	@UseGuards(GoogleOAuthInitGuard)
 	async googleAuth() {}
 
 	@Get('google/callback')
-	@UseGuards(AuthGuard('google'))
+	@UseGuards(OAuthStateGuard, AuthGuard('google'))
 	async googleCallback(@Req() req: Request, @Res() res: Response) {
-		const oauthUser = req.user as {
-			email?: string
-			name?: string
-			picture?: string
-		}
-
-		const { refreshToken, accessToken } =
-			await this.authService.validateOAuthUser({
-				user: oauthUser
-			})
-
-		this.authService.addRefreshTokenToResponse(res, refreshToken)
-
-		return res.redirect(
-			`http://localhost:3000/dashboard?accessToken=${encodeURIComponent(accessToken)}`
-		)
+		return this.completeOAuthLogin(req, res)
 	}
 
 	@Get('yandex')
-	@UseGuards(AuthGuard('yandex'))
+	@UseGuards(YandexOAuthInitGuard)
 	async yandexAuth() {}
 
 	@Get('yandex/callback')
-	@UseGuards(AuthGuard('yandex'))
+	@UseGuards(OAuthStateGuard, AuthGuard('yandex'))
 	async yandexCallback(@Req() req: Request, @Res() res: Response) {
+		return this.completeOAuthLogin(req, res)
+	}
+
+	private async completeOAuthLogin(req: Request, res: Response) {
 		const oauthUser = req.user as {
 			email?: string
 			name?: string
@@ -127,8 +125,35 @@ export class AuthController {
 
 		this.authService.addRefreshTokenToResponse(res, refreshToken)
 
+		const state = req.cookies?.[OAUTH_STATE_COOKIE] as string
+		const code = this.oauthExchangeService.create(accessToken, state)
+		const clientUrl =
+			this.configService.get<string>('CLIENT_URL') ??
+			'http://localhost:3000'
+
 		return res.redirect(
-			`http://localhost:3000/dashboard?accessToken=${encodeURIComponent(accessToken)}`
+			`${clientUrl}/dashboard?code=${encodeURIComponent(code)}`
 		)
+	}
+
+	@HttpCode(200)
+	@Post('oauth/exchange')
+	exchangeOAuthCode(
+		@Body('code') code: string,
+		@Req() req: Request,
+		@Res({ passthrough: true }) res: Response
+	) {
+		const state = req.cookies?.[OAUTH_STATE_COOKIE] as string | undefined
+		const accessToken = this.oauthExchangeService.consume(code, state)
+
+		if (!accessToken) {
+			throw new UnauthorizedException(
+				'Код авторизации недействителен или истёк'
+			)
+		}
+
+		res.clearCookie(OAUTH_STATE_COOKIE)
+
+		return { accessToken }
 	}
 }

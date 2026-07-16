@@ -16,8 +16,12 @@ export class FileController {
     constructor(private readonly fileService: FileService) {}
 
     @HttpCode(200)
-    // Разрешаем загрузку до 10 файлов за раз
-    @UseInterceptors(FilesInterceptor('files', 10)) 
+    // Разрешаем загрузку до 10 файлов за раз, не больше 5 МБ каждый
+    @UseInterceptors(
+        FilesInterceptor('files', 10, {
+            limits: { fileSize: 5 * 1024 * 1024 }
+        })
+    )
     @Auth()
     @Post()
     async saveFile(

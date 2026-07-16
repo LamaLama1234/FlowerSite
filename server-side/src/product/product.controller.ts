@@ -24,9 +24,13 @@ export class ProductController {
 	constructor(private readonly productService: ProductService) {}
 
 	@Get()
-	async getAll(@Query('searchTerm') searchTerm?: string) {
-		return this.productService.getAll(searchTerm)
-
+	async getAll(
+		@Query('searchTerm') searchTerm?: string,
+		@Query('page') page?: string,
+		@Query('limit') limit?: string,
+		@Query('categoryId') categoryId?: string
+	) {
+		return this.productService.getAll(searchTerm, undefined, page, limit, categoryId)
 	}
 	@Get('by-id/:id')
 	async getById(@Param('id') id: string) {

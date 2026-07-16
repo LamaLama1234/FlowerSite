@@ -17,10 +17,12 @@ export class UserController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     async getAll(
         @Query('searchTerm') searchTerm: string,
+        @Query('page') page: string,
+        @Query('limit') limit: string,
         @CurrentUser() user: { id: string; role: string } // Достаем юзера из токена
     ) {
         // Теперь сервис точно знает, КТО запрашивает данные
-        return this.userService.getAll(user, searchTerm);
+        return this.userService.getAll(user, searchTerm, page, limit);
     }
 
     @Auth()

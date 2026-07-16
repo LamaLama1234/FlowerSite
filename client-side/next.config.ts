@@ -11,6 +11,7 @@ const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url));
 
 // Фолбэк, чтобы build/dev не падали без .env.local (бэкенд по умолчанию на 5001).
 const SERVER_URL = process.env.SERVER_URL ?? "http://localhost:5001";
+const serverUrl = new URL(SERVER_URL);
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -38,13 +39,19 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
       },
+      {
+        // Товарные изображения раздаются напрямую с бэкенда (/uploads/...).
+        protocol: serverUrl.protocol.replace(":", "") as "http" | "https",
+        hostname: serverUrl.hostname,
+        port: serverUrl.port || undefined,
+      },
     ],
   },
   async rewrites() {
     return [
       {
-        source: "/upload/:path*",
-        destination: `${SERVER_URL}/upload/:path*`,
+        source: "/uploads/:path*",
+        destination: `${SERVER_URL}/uploads/:path*`,
       },
     ];
   },

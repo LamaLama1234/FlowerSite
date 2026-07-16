@@ -5,12 +5,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 
 import { AuthService } from './auth.service'
 import { AuthController } from './auth.controller'
-import { PrismaService } from '../prisma.service'
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { GoogleStrategy } from './strategies/google.strategy'
 import { YandexStrategy } from './strategies/yandex.strategy'
 import { UserModule } from '../user/user.module'
 import { RolesGuard } from './guards/roles.guard'
+import { OAuthExchangeService } from './oauth-exchange.service'
+import { OAuthStateGuard } from './guards/oauth-state.guard'
+import { GoogleOAuthInitGuard } from './guards/google-oauth-init.guard'
+import { YandexOAuthInitGuard } from './guards/yandex-oauth-init.guard'
 
 @Module({
 	imports: [
@@ -31,11 +34,14 @@ import { RolesGuard } from './guards/roles.guard'
 	controllers: [AuthController],
 	providers: [
 		AuthService,
-		PrismaService,
 		JwtStrategy,
 		GoogleStrategy,
 		YandexStrategy,
-		RolesGuard
+		RolesGuard,
+		OAuthExchangeService,
+		OAuthStateGuard,
+		GoogleOAuthInitGuard,
+		YandexOAuthInitGuard
 	],
 	exports: [AuthService, JwtModule]
 })
