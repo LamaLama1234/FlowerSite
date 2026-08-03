@@ -13,6 +13,10 @@ import {
 } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { AuthDto } from './dto/auth.dto'
+import { VerifyEmailDto } from './dto/verify-email.dto'
+import { ResendCodeDto } from './dto/resend-code.dto'
+import { ForgotPasswordDto } from './dto/forgot-password.dto'
+import { ResetPasswordDto } from './dto/reset-password.dto'
 import type { Request, Response } from 'express'
 import { ConfigService } from '@nestjs/config'
 import { OAuthExchangeService } from './oauth-exchange.service'
@@ -46,12 +50,50 @@ export class AuthController {
 	@UsePipes(new ValidationPipe())
 	@HttpCode(200)
 	@Post('register')
-	async register(
-		@Body() dto: AuthDto,
+	async register(@Body() dto: AuthDto) {
+		// Токены здесь не выдаём — аккаунт ещё не создан, сначала нужно
+		// подтвердить почту кодом (см. verify-email).
+		return this.authService.register(dto)
+	}
+
+	@UsePipes(new ValidationPipe())
+	@HttpCode(200)
+	@Post('resend-code')
+	async resendCode(@Body() dto: ResendCodeDto) {
+		return this.authService.resendCode(dto)
+	}
+
+	@UsePipes(new ValidationPipe())
+	@HttpCode(200)
+	@Post('verify-email')
+	async verifyEmail(
+		@Body() dto: VerifyEmailDto,
 		@Res({ passthrough: true }) res: Response
 	) {
 		const { refreshToken, ...response } =
-			await this.authService.register(dto)
+			await this.authService.verifyEmail(dto)
+
+		this.authService.addRefreshTokenToResponse(res, refreshToken)
+
+		return response
+	}
+
+	@UsePipes(new ValidationPipe())
+	@HttpCode(200)
+	@Post('forgot-password')
+	async forgotPassword(@Body() dto: ForgotPasswordDto) {
+		return this.authService.forgotPassword(dto)
+	}
+
+	@UsePipes(new ValidationPipe())
+	@HttpCode(200)
+	@Post('reset-password')
+	async resetPassword(
+		@Body() dto: ResetPasswordDto,
+		@Res({ passthrough: true }) res: Response
+	) {
+		const { refreshToken, ...response } =
+			await this.authService.resetPassword(dto)
 
 		this.authService.addRefreshTokenToResponse(res, refreshToken)
 

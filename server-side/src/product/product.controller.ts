@@ -28,9 +28,12 @@ export class ProductController {
 		@Query('searchTerm') searchTerm?: string,
 		@Query('page') page?: string,
 		@Query('limit') limit?: string,
-		@Query('categoryId') categoryId?: string
+		@Query('categoryId') categoryId?: string,
+		@Query('minPrice') minPrice?: string,
+		@Query('maxPrice') maxPrice?: string,
+		@Query('sortBy') sortBy?: string
 	) {
-		return this.productService.getAll(searchTerm, undefined, page, limit, categoryId)
+		return this.productService.getAll(searchTerm, undefined, page, limit, categoryId, minPrice, maxPrice, sortBy)
 	}
 	@Get('by-id/:id')
 	async getById(@Param('id') id: string) {
@@ -45,6 +48,16 @@ export class ProductController {
 	@Get('most-popular')
 	async getMostPopular() {
 		return this.productService.getMostPopular()
+	}
+
+	@Get('discounted')
+	async getDiscounted() {
+		return this.productService.getDiscounted()
+	}
+
+	@Get('related/:id')
+	async getRelated(@Param('id') id: string) {
+		return this.productService.getRelated(id)
 	}
 
 	@UseGuards(AuthGuard('jwt'), RolesGuard)

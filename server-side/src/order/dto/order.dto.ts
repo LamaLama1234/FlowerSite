@@ -1,11 +1,13 @@
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  ValidateIf,
   ValidateNested,
   Min,
   MaxLength
@@ -42,9 +44,25 @@ export class OrderDto {
   deliveryDate: string // Преобразуем в Date в сервисе
 
   @IsOptional()
+  @IsBoolean()
+  isAsap?: boolean
+
+  // Обязательно, если не выбрано "как можно быстрее"
+  @ValidateIf(o => !o.isAsap)
+  @IsString()
+  @IsNotEmpty({ message: 'Укажите время доставки или выберите «как можно быстрее»' })
+  @MaxLength(50)
+  deliveryTimeSlot?: string
+
+  @IsOptional()
   @IsString()
   @MaxLength(500)
   comment?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  promoCode?: string
 
   @IsArray({
     message: "В заказе нет ни одного товара"

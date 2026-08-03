@@ -1,14 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Leaf, LogOut, ShoppingBag } from "lucide-react";
+import { Heart, Leaf, LogOut, Menu, ShoppingBag, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { useProfile } from "@/hooks/useProfile";
 import { authService } from "@/services/auth.service";
 import { useCartCount } from "@/stores/cart.store";
+import { useFavoritesCount } from "@/stores/favorites.store";
 import { CornerFlourish } from "@/components/decorative/CornerFlourish";
 
 export function Header() {
@@ -16,12 +18,15 @@ export function Header() {
   const queryClient = useQueryClient();
   const { data: user } = useProfile();
   const cartCount = useCartCount();
+  const favoritesCount = useFavoritesCount();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleLogout() {
     try {
       await authService.logout();
       queryClient.removeQueries({ queryKey: ["profile"] });
       toast.success("Вы вышли из аккаунта");
+      setMenuOpen(false);
       router.push("/auth");
       router.refresh();
     } catch {
@@ -48,12 +53,25 @@ export function Header() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-5">
+        <nav className="hidden items-center gap-5 sm:flex">
           <Link
             href="/catalog"
             className="text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
           >
             Каталог
+          </Link>
+
+          <Link
+            href="/favorites"
+            className="text-muted-foreground hover:text-primary relative transition-colors"
+            aria-label="Избранное"
+          >
+            <Heart className="size-5" />
+            {favoritesCount > 0 && (
+              <span className="bg-gold-500 absolute -top-2 -right-2 flex size-4 items-center justify-center rounded-full text-[0.625rem] font-semibold text-white">
+                {favoritesCount}
+              </span>
+            )}
           </Link>
 
           <Link
@@ -73,7 +91,7 @@ export function Header() {
             <>
               <Link
                 href="/dashboard"
-                className="text-muted-foreground hover:text-primary hidden max-w-32 truncate text-sm font-medium transition-colors sm:inline"
+                className="text-muted-foreground hover:text-primary max-w-32 truncate text-sm font-medium transition-colors"
               >
                 {user.name || user.email}
               </Link>
@@ -95,7 +113,89 @@ export function Header() {
             </Link>
           )}
         </nav>
+
+        <div className="flex items-center gap-4 sm:hidden">
+          <Link
+            href="/favorites"
+            className="text-muted-foreground hover:text-primary relative transition-colors"
+            aria-label="Избранное"
+          >
+            <Heart className="size-5" />
+            {favoritesCount > 0 && (
+              <span className="bg-gold-500 absolute -top-2 -right-2 flex size-4 items-center justify-center rounded-full text-[0.625rem] font-semibold text-white">
+                {favoritesCount}
+              </span>
+            )}
+          </Link>
+
+          <Link
+            href="/cart"
+            className="text-muted-foreground hover:text-primary relative transition-colors"
+            aria-label="Корзина"
+          >
+            <ShoppingBag className="size-5" />
+            {cartCount > 0 && (
+              <span className="bg-gold-500 absolute -top-2 -right-2 flex size-4 items-center justify-center rounded-full text-[0.625rem] font-semibold text-white">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"}
+            aria-expanded={menuOpen}
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
+            {menuOpen ? (
+              <X className="size-6" />
+            ) : (
+              <Menu className="size-6" />
+            )}
+          </button>
+        </div>
       </div>
+
+      {menuOpen && (
+        <nav className="border-gold-200/40 bg-background relative flex flex-col gap-1 border-t px-4 py-3 sm:hidden">
+          <Link
+            href="/catalog"
+            onClick={() => setMenuOpen(false)}
+            className="text-foreground hover:text-primary hover:bg-muted rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+          >
+            Каталог
+          </Link>
+
+          {user ? (
+            <>
+              <Link
+                href="/dashboard"
+                onClick={() => setMenuOpen(false)}
+                className="text-foreground hover:text-primary hover:bg-muted truncate rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+              >
+                {user.name || user.email}
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-foreground hover:text-primary hover:bg-muted flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors"
+              >
+                <LogOut className="size-4" />
+                Выйти
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/auth"
+              onClick={() => setMenuOpen(false)}
+              className="text-primary hover:bg-muted rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
+            >
+              Войти
+            </Link>
+          )}
+        </nav>
+      )}
 
       {/* Тонкая золотая грань снизу — как прожилка мрамора, не сплошная линия */}
       <div className="via-gold-300/60 relative h-px bg-gradient-to-r from-transparent to-transparent" />

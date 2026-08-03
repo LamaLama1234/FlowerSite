@@ -14,6 +14,7 @@ import { OAuthExchangeService } from './oauth-exchange.service'
 import { OAuthStateGuard } from './guards/oauth-state.guard'
 import { GoogleOAuthInitGuard } from './guards/google-oauth-init.guard'
 import { YandexOAuthInitGuard } from './guards/yandex-oauth-init.guard'
+import { MailService } from '../mail/mail.service'
 
 @Module({
 	imports: [
@@ -41,7 +42,8 @@ import { YandexOAuthInitGuard } from './guards/yandex-oauth-init.guard'
 		OAuthExchangeService,
 		OAuthStateGuard,
 		GoogleOAuthInitGuard,
-		YandexOAuthInitGuard
+		YandexOAuthInitGuard,
+		MailService
 	],
 	exports: [AuthService, JwtModule]
 })

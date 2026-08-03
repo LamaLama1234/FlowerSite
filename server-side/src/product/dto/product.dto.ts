@@ -1,11 +1,12 @@
-import { 
-    ArrayMinSize, 
-    IsNotEmpty, 
-    IsNumber, 
-    IsString, 
-    Min, 
-    MaxLength, 
-    ArrayNotEmpty 
+import {
+    ArrayMinSize,
+    IsNotEmpty,
+    IsNumber,
+    IsOptional,
+    IsString,
+    Min,
+    MaxLength,
+    ArrayNotEmpty
 } from "class-validator"
 
 export class ProductDto {
@@ -24,10 +25,19 @@ export class ProductDto {
     @Min(0, { message: 'Цена не может быть отрицательной' })
     price: number
 
+    @IsOptional()
+    @IsNumber({}, { message: 'Старая цена должна быть числом' })
+    @Min(0, { message: 'Старая цена не может быть отрицательной' })
+    oldPrice?: number
+
     @IsString({message: 'Укажите хотябы одну картинку', each: true})
     @ArrayMinSize(1, { message: 'Укажите хотябы одну картинку'})
     @IsNotEmpty({ each: true})
     images: string[]
+
+    @IsOptional()
+    @IsString({ each: true })
+    tags?: string[]
 
     @IsString({
         message: 'Категория обязательна'

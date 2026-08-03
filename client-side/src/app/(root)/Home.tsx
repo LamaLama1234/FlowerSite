@@ -7,16 +7,24 @@ import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { usePopularProducts } from "@/hooks/usePopularProducts";
+import { useDiscountedProducts } from "@/hooks/useDiscountedProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { findCategoryByTitle } from "@/utils/category";
 import { GoldDivider } from "@/components/decorative/GoldDivider";
 import { CornerFlourish } from "@/components/decorative/CornerFlourish";
 import { SparkleField } from "@/components/decorative/SparkleField";
-import { BranchMotif } from "@/components/decorative/BranchMotif";
 
 export function Home() {
   const { data: popularProducts, isLoading, isError } = usePopularProducts();
   const showPopular = isLoading || (!isError && !!popularProducts?.length);
+
+  const {
+    data: discountedProducts,
+    isLoading: isDiscountedLoading,
+    isError: isDiscountedError,
+  } = useDiscountedProducts();
+  const showDiscounted =
+    isDiscountedLoading || (!isDiscountedError && !!discountedProducts?.length);
 
   const { data: categories } = useCategories();
   const customBouquets = findCategoryByTitle(categories, "Сборные букеты");
@@ -28,8 +36,6 @@ export function Home() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-background to-emerald-100 dark:from-emerald-950/40 dark:via-background dark:to-emerald-900/30">
         <SparkleField count={5} />
-        <BranchMotif className="pointer-events-none absolute -top-6 -right-10 size-56 text-gold-400/25 sm:size-72" />
-        <BranchMotif className="pointer-events-none absolute -bottom-10 -left-10 size-56 rotate-180 text-gold-400/20 sm:size-72" />
 
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center sm:py-32">
           <span className="glass-panel ring-gold-200/50 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-primary ring-1">
@@ -67,6 +73,37 @@ export function Home() {
       </section>
 
       <GoldDivider variant="flower" className="py-10" />
+
+      {/* Букеты со скидкой */}
+      {showDiscounted && (
+        <section className="mx-auto w-full max-w-6xl px-4 py-16">
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Букеты со скидкой
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Успейте выбрать, пока действует скидка
+            </p>
+          </div>
+
+          <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2">
+            {isDiscountedLoading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="aspect-[3/4] w-56 shrink-0 animate-pulse rounded-2xl bg-muted"
+                  />
+                ))
+              : discountedProducts!.map((product) => (
+                  <div key={product.id} className="w-56 shrink-0">
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+          </div>
+        </section>
+      )}
+
+      {showDiscounted && showPopular && <GoldDivider variant="sparkle" />}
 
       {/* Популярные товары */}
       {showPopular && (
@@ -162,6 +199,24 @@ export function Home() {
           title="Бережная доставка"
           text="Доставим вовремя и в идеальном виде — красота не пострадает в пути."
         />
+      </section>
+
+      <GoldDivider variant="sparkle" />
+
+      {/* Соцсети */}
+      <section className="mx-auto w-full max-w-6xl px-4 py-16 text-center">
+        <h2 className="font-heading text-2xl text-primary sm:text-3xl">
+          Мы в соцсетях
+        </h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Свежие фото букетов, акции и новости — подписывайтесь
+        </p>
+        <Button asChild size="lg" className="mt-6 h-11 px-6 text-base">
+          <Link href="/social">
+            Наши соцсети
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
       </section>
     </main>
   );

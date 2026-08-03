@@ -6,6 +6,16 @@ import { Pencil, Plus, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useCategories } from "@/hooks/useCategories";
 import { categoryService } from "@/services/category.service";
 import type {
@@ -21,6 +31,7 @@ export function AdminCategories() {
   const { data: categories, isLoading } = useCategories();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ICategoryInput>(EMPTY_FORM);
+  const [deleteTarget, setDeleteTarget] = useState<ICategory | null>(null);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -56,6 +67,7 @@ export function AdminCategories() {
     mutationFn: (id: string) => categoryService.delete(id),
     onSuccess() {
       toast.success("Категория удалена");
+      setDeleteTarget(null);
       invalidate();
     },
     onError(error) {
@@ -131,15 +143,8 @@ export function AdminCategories() {
                         size="icon-sm"
                         variant="ghost"
                         className="hover:text-destructive"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              `Удалить категорию «${category.title}»?`,
-                            )
-                          ) {
-                            deleteMutation.mutate(category.id);
-                          }
-                        }}
+                        aria-label={`Удалить категорию «${category.title}»`}
+                        onClick={() => setDeleteTarget(category)}
                       >
                         <Trash2 className="size-3.5" />
                       </Button>
@@ -195,6 +200,32 @@ export function AdminCategories() {
           {editingId ? "Сохранить" : "Создать"}
         </Button>
       </form>
+
+      <AlertDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить категорию?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Категория «{deleteTarget?.title}» будет удалена без возможности
+              восстановления.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              onClick={() =>
+                deleteTarget && deleteMutation.mutate(deleteTarget.id)
+              }
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

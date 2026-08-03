@@ -6,18 +6,31 @@ import { Pencil, Plus, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { productService } from "@/services/product.service";
 import type { IProduct, IProductInput } from "@/shared/types/product.interface";
 import { formatPrice } from "@/utils/product";
 import { extractErrorMessage } from "@/utils/errors";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 
 interface ProductFormState {
   title: string;
   description: string;
   price: string;
-  imagesText: string;
+  oldPrice: string;
+  images: string[];
+  tagsText: string;
   categoryId: string;
 }
 
@@ -25,19 +38,27 @@ const EMPTY_FORM: ProductFormState = {
   title: "",
   description: "",
   price: "",
-  imagesText: "",
+  oldPrice: "",
+  images: [],
+  tagsText: "",
   categoryId: "",
 };
+
+function splitCommaList(value: string): string[] {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 function toInput(form: ProductFormState): IProductInput {
   return {
     title: form.title,
     description: form.description,
+    oldPrice: form.oldPrice ? Number(form.oldPrice) || undefined : undefined,
     price: Number(form.price) || 0,
-    images: form.imagesText
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean),
+    images: form.images,
+    tags: splitCommaList(form.tagsText),
     categoryId: form.categoryId,
   };
 }
@@ -49,6 +70,7 @@ export function AdminProducts() {
   const products = data?.items;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormState>(EMPTY_FORM);
+  const [deleteTarget, setDeleteTarget] = useState<IProduct | null>(null);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -84,6 +106,7 @@ export function AdminProducts() {
     mutationFn: (id: string) => productService.delete(id),
     onSuccess() {
       toast.success("Товар удалён");
+      setDeleteTarget(null);
       invalidate();
     },
     onError(error) {
@@ -97,7 +120,9 @@ export function AdminProducts() {
       title: product.title,
       description: product.description,
       price: String(product.price),
-      imagesText: product.images?.join(", ") ?? "",
+      oldPrice: product.oldPrice ? String(product.oldPrice) : "",
+      images: product.images ?? [],
+      tagsText: product.tags?.join(", ") ?? "",
       categoryId: product.categoryId ?? "",
     });
   }
@@ -160,7 +185,14 @@ export function AdminProducts() {
                   <td className="max-w-52 truncate px-4 py-3 font-medium">
                     {product.title}
                   </td>
-                  <td className="px-4 py-3">{formatPrice(product.price)}</td>
+                  <td className="px-4 py-3">
+                    {formatPrice(product.price)}
+                    {product.oldPrice && product.oldPrice > product.price && (
+                      <span className="text-muted-foreground ml-1.5 text-xs line-through">
+                        {formatPrice(product.oldPrice)}
+                      </span>
+                    )}
+                  </td>
                   <td className="text-muted-foreground px-4 py-3">
                     {product.category?.title ?? "—"}
                   </td>
@@ -177,11 +209,8 @@ export function AdminProducts() {
                         size="icon-sm"
                         variant="ghost"
                         className="hover:text-destructive"
-                        onClick={() => {
-                          if (confirm(`Удалить товар «${product.title}»?`)) {
-                            deleteMutation.mutate(product.id);
-                          }
-                        }}
+                        aria-label={`Удалить товар «${product.title}»`}
+                        onClick={() => setDeleteTarget(product)}
                       >
                         <Trash2 className="size-3.5" />
                       </Button>
@@ -238,10 +267,22 @@ export function AdminProducts() {
           className={inputClass}
         />
         <input
+          type="number"
+          min={0}
+          placeholder="Старая цена (для скидки, необязательно)"
+          value={form.oldPrice}
+          onChange={(e) => updateField("oldPrice", e.target.value)}
+          className={inputClass}
+        />
+        <ImageUploader
+          images={form.images}
+          onChange={(images) => updateField("images", images)}
+        />
+        <input
           type="text"
-          placeholder="Картинки через запятую (nike1.png, nike2.png)"
-          value={form.imagesText}
-          onChange={(e) => updateField("imagesText", e.target.value)}
+          placeholder="Теги через запятую (белый, свадебный, розы)"
+          value={form.tagsText}
+          onChange={(e) => updateField("tagsText", e.target.value)}
           className={inputClass}
         />
         <select
@@ -262,6 +303,32 @@ export function AdminProducts() {
           {editingId ? "Сохранить" : "Создать"}
         </Button>
       </form>
+
+      <AlertDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить товар?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Товар «{deleteTarget?.title}» будет удалён без возможности
+              восстановления.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              onClick={() =>
+                deleteTarget && deleteMutation.mutate(deleteTarget.id)
+              }
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

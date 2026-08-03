@@ -5,6 +5,8 @@ import { PropsWithChildren, useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import { Toaster } from "react-hot-toast";
 import { useCartStore } from "@/stores/cart.store";
+import { useFavoritesStore } from "@/stores/favorites.store";
+import { PromoBadge } from "@/components/PromoBadge";
 
 export function Providers({ children }: PropsWithChildren) {
     const [client] = useState(
@@ -21,11 +23,13 @@ export function Providers({ children }: PropsWithChildren) {
     // только после маунта, чтобы первый клиентский рендер совпадал с SSR.
     useEffect(() => {
         useCartStore.persist.rehydrate()
+        useFavoritesStore.persist.rehydrate()
     }, [])
 
     return (
-        <QueryClientProvider client={client}>  
+        <QueryClientProvider client={client}>
             <Toaster />
+            <PromoBadge />
             {children}
 
         </QueryClientProvider>

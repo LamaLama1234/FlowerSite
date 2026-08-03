@@ -178,7 +178,8 @@ export class TelegramService implements OnModuleInit {
             const orderId = ctx.match[1];
             const newStatus = ctx.match[2] as EnumOrderStatus;
             try {
-                await this.prisma.order.update({ where: { id: orderId }, data: { status: newStatus } });
+                const worker = await this.prisma.user.findFirst({ where: { telegramId: ctx.from.id.toString() } });
+                await this.orderService.updateStatus(orderId, newStatus, undefined, worker?.id, 'telegram');
                 await ctx.answerCbQuery(`Обновлено: ${newStatus}`);
                 await this.editToOrdersList(ctx);
             } catch (e: any) {
@@ -238,6 +239,7 @@ export class TelegramService implements OnModuleInit {
             text += `📞 <b>Тел:</b> <code>${o.phone}</code>\n`;
             text += `📦 <b>Состав:</b>\n${items}\n`;
             text += `💰 <b>Итого:</b> ${o.total} руб.\n`;
+            text += `⏰ <b>Время:</b> ${o.isAsap ? 'Как можно быстрее' : o.deliveryTimeSlot || '—'}\n`;
             if (o.deliveryAddress) text += `📍 <b>Адрес:</b> ${o.deliveryAddress}\n`;
             if (o.comment) text += `💬 <b>Комм:</b> <i>${o.comment}</i>\n`;
             text += `──────────────────\n`;

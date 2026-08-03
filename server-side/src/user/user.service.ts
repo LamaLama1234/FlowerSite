@@ -1,7 +1,5 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common'; // Импортировали NotFoundException
 import { PrismaService } from 'src/prisma.service';
-import { hash } from 'argon2';
-import { AuthDto } from 'src/auth/dto/auth.dto';
 import { EnumUserRole } from '@prisma/client'
 import { parsePagination } from 'src/common/pagination'
 
@@ -100,17 +98,5 @@ export class UserService {
         	where: { email },
         // Убираем include, так как заказы здесь — лишняя нагрузка и риск утечки
     	})
-	}
-
-	async create(dto: AuthDto) {
-		return this.prisma.user.create({
-			data: {
-				name: dto.name,
-				email: dto.email,
-				password: await hash(dto.password),
-				role: EnumUserRole.USER
-
-			}
-		})
 	}
 }

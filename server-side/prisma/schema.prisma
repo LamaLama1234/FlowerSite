@@ -17,9 +17,40 @@ model User {
   role       EnumUserRole @default(USER)
   telegramId String?
   orders     Order[]
+  statusChanges OrderStatusHistory[]
 
   @@index([telegramId])
   @@map("user")
+}
+
+// Незавершённая регистрация email/пароль — код подтверждения ждёт здесь,
+// реальная строка User создаётся только после успешной проверки кода.
+// Так неподтверждённые попытки регистрации не засоряют таблицу user.
+model EmailVerification {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now()) @map("created_at")
+  email      String   @unique
+  name       String?
+  password   String
+  code       String
+  expiresAt  DateTime @map("expires_at")
+  lastSentAt DateTime @default(now()) @map("last_sent_at")
+
+  @@map("email_verification")
+}
+
+// Код для восстановления пароля — отдельно от EmailVerification, так как
+// тут нет ни пароля, ни имени: пользователь уже существует, меняем только
+// password у существующего User после подтверждения кода.
+model PasswordReset {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now()) @map("created_at")
+  email      String   @unique
+  code       String
+  expiresAt  DateTime @map("expires_at")
+  lastSentAt DateTime @default(now()) @map("last_sent_at")
+
+  @@map("password_reset")
 }
 
 model Product {
@@ -29,7 +60,9 @@ model Product {
   title       String
   description String
   price       Int
+  oldPrice    Int?        @map("old_price")
   images      String[]
+  tags        String[]    @default([])
   categoryId  String?     @map("category_id")
   orderItems  OrderItem[]
   category    Category?   @relation(fields: [categoryId], references: [id])
@@ -62,14 +95,36 @@ model Order {
   deliveryAddress String
   deliveryDate    DateTime
   deliveryType    EnumDeliveryType
+  isAsap          Boolean          @default(false) @map("is_asap")
+  deliveryTimeSlot String?         @map("delivery_time_slot")
   paymentLink     String?
   shippingPrice   Int              @default(0)
+  promoCode       String?          @map("promo_code")
+  discount        Int              @default(0)
   user            User             @relation(fields: [userId], references: [id])
   items           OrderItem[]
+  statusHistory   OrderStatusHistory[]
 
   @@index([userId])
   @@index([status])
   @@map("order")
+}
+
+// Полный лог смены статусов заказа — кто и когда переключил, откуда
+// (админка/бот). changedBy может быть null для системных переходов
+// (например webhook оплаты ЮKassa).
+model OrderStatusHistory {
+  id        String          @id @default(cuid())
+  createdAt DateTime        @default(now()) @map("created_at")
+  orderId   String          @map("order_id")
+  status    EnumOrderStatus
+  changedBy String?         @map("changed_by")
+  source    String          @default("system")
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedByUser User?       @relation(fields: [changedBy], references: [id])
+
+  @@index([orderId])
+  @@map("order_status_history")
 }
 
 model OrderItem {

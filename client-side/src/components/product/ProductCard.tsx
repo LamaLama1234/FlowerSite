@@ -1,21 +1,42 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Flower2, ShoppingCart } from "lucide-react";
+import { Flower2, Heart, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
 import type { IProduct } from "@/shared/types/product.interface";
 import { formatPrice, resolveImageUrl } from "@/utils/product";
 import { useCartStore } from "@/stores/cart.store";
+import { useFavoritesStore, useIsFavorite } from "@/stores/favorites.store";
 import { CornerFlourish } from "@/components/decorative/CornerFlourish";
+import { cn } from "@/lib/utils";
 
 export function ProductCard({ product }: { product: IProduct }) {
   const image = resolveImageUrl(product.images?.[0]);
   const addItem = useCartStore((state) => state.addItem);
+  const isFavorite = useIsFavorite(product.id);
+  const toggleFavorite = useFavoritesStore((state) => state.toggle);
+  const hasDiscount = Boolean(
+    product.oldPrice && product.oldPrice > product.price,
+  );
+  const discountPercent = hasDiscount
+    ? Math.round((1 - product.price / (product.oldPrice as number)) * 100)
+    : null;
 
   function handleAddToCart() {
     addItem(product);
     toast.success(`«${product.title}» добавлен в корзину`);
+  }
+
+  function handleToggleFavorite(event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleFavorite(product);
+    toast.success(
+      isFavorite
+        ? `«${product.title}» удалён из избранного`
+        : `«${product.title}» добавлен в избранное`,
+    );
   }
 
   return (
@@ -23,6 +44,26 @@ export function ProductCard({ product }: { product: IProduct }) {
       <CornerFlourish corner="tl" className="z-10" />
       {/* Лёгкий диагональный блик при наведении — не мешает содержимому. */}
       <div className="bg-celestial-shimmer pointer-events-none absolute inset-0 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-hover:animate-celestial-shimmer" />
+
+      {hasDiscount && (
+        <span className="absolute top-3 left-3 z-20 rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white shadow">
+          -{discountPercent}%
+        </span>
+      )}
+
+      <button
+        type="button"
+        onClick={handleToggleFavorite}
+        aria-label={
+          isFavorite ? "Убрать из избранного" : "Добавить в избранное"
+        }
+        aria-pressed={isFavorite}
+        className="text-muted-foreground hover:text-destructive absolute top-2 right-2 z-20 flex size-8 items-center justify-center rounded-full bg-white/80 backdrop-blur transition-colors dark:bg-black/40"
+      >
+        <Heart
+          className={cn("size-4", isFavorite && "fill-destructive text-destructive")}
+        />
+      </button>
 
       {/* display: contents — ссылка не ломает flex-раскладку article,
           кнопка "В корзину" ниже остаётся вне неё и не триггерит переход. */}
@@ -57,8 +98,15 @@ export function ProductCard({ product }: { product: IProduct }) {
             {product.description}
           </p>
           <div className="mt-auto pt-2">
-            <p className="text-lg font-semibold">
-              {formatPrice(product.price)}
+            <p className="flex items-baseline gap-2">
+              <span className="text-lg font-semibold">
+                {formatPrice(product.price)}
+              </span>
+              {hasDiscount && (
+                <span className="text-muted-foreground text-sm line-through">
+                  {formatPrice(product.oldPrice as number)}
+                </span>
+              )}
             </p>
             <span className="via-gold-400 mt-1 block h-px w-10 bg-gradient-to-r from-transparent to-transparent" />
           </div>

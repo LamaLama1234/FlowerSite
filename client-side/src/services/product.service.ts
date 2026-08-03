@@ -1,19 +1,35 @@
 import { axiosClassic, axiosWithAuth } from "@/api/axios";
 import { getProductsUrl } from "@/constants/api.constants";
-import type { IProduct, IProductInput } from "@/shared/types/product.interface";
+import type {
+  IProduct,
+  IProductInput,
+  ProductSortBy,
+} from "@/shared/types/product.interface";
 import type { IPaginatedResponse } from "@/shared/types/pagination.interface";
 
+export interface IProductsQuery {
+  searchTerm?: string;
+  categoryId?: string;
+  page?: number;
+  limit?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: ProductSortBy;
+}
+
 export const productService = {
-  async getAll(searchTerm?: string, categoryId?: string) {
-    // limit: 100 — максимум, который отдаёт бэкенд за один запрос. В каталоге
-    // пока нет UI пагинации/подгрузки, поэтому забираем целиком одну "страницу".
+  async getAll(query: IProductsQuery = {}) {
     const { data } = await axiosClassic.get<IPaginatedResponse<IProduct>>(
       getProductsUrl(),
       {
         params: {
-          limit: 100,
-          ...(searchTerm ? { searchTerm } : {}),
-          ...(categoryId ? { categoryId } : {}),
+          page: query.page,
+          limit: query.limit ?? 100,
+          searchTerm: query.searchTerm || undefined,
+          categoryId: query.categoryId || undefined,
+          minPrice: query.minPrice,
+          maxPrice: query.maxPrice,
+          sortBy: query.sortBy,
         },
       },
     );
@@ -37,6 +53,20 @@ export const productService = {
   async getMostPopular() {
     const { data } = await axiosClassic.get<IProduct[]>(
       getProductsUrl("/most-popular"),
+    );
+    return data;
+  },
+
+  async getDiscounted() {
+    const { data } = await axiosClassic.get<IProduct[]>(
+      getProductsUrl("/discounted"),
+    );
+    return data;
+  },
+
+  async getRelated(id: string) {
+    const { data } = await axiosClassic.get<IProduct[]>(
+      getProductsUrl(`/related/${id}`),
     );
     return data;
   },

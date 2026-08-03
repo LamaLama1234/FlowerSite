@@ -3,21 +3,29 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Flower2, Minus, Plus, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Flower2, Heart, Minus, Plus, ShoppingCart, Tag } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
+import { ProductCard } from "@/components/product/ProductCard";
+import { ProductGrid } from "@/components/product/ProductGrid";
 import { useProduct } from "@/hooks/useProduct";
+import { useRelatedProducts } from "@/hooks/useRelatedProducts";
 import { useCartStore } from "@/stores/cart.store";
+import { useFavoritesStore, useIsFavorite } from "@/stores/favorites.store";
 import { formatPrice, resolveImageUrl } from "@/utils/product";
 import { CornerFlourish } from "@/components/decorative/CornerFlourish";
 import { GoldDivider } from "@/components/decorative/GoldDivider";
+import { cn } from "@/lib/utils";
 
 export function ProductDetail({ id }: { id: string }) {
   const { data: product, isLoading, isError } = useProduct(id);
+  const { data: relatedProducts } = useRelatedProducts(id);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((state) => state.addItem);
+  const isFavorite = useIsFavorite(id);
+  const toggleFavorite = useFavoritesStore((state) => state.toggle);
 
   const backLink = (
     <Link
@@ -62,10 +70,22 @@ export function ProductDetail({ id }: { id: string }) {
 
   const images = product.images?.length ? product.images : [];
   const mainImage = resolveImageUrl(images[activeImage]);
+  const hasDiscount = Boolean(
+    product.oldPrice && product.oldPrice > product.price,
+  );
 
   function handleAddToCart() {
     addItem(product!, quantity);
     toast.success(`«${product!.title}» добавлен в корзину`);
+  }
+
+  function handleToggleFavorite() {
+    toggleFavorite(product!);
+    toast.success(
+      isFavorite
+        ? `«${product!.title}» удалён из избранного`
+        : `«${product!.title}» добавлен в избранное`,
+    );
   }
 
   return (
@@ -126,18 +146,61 @@ export function ProductDetail({ id }: { id: string }) {
         </div>
 
         <div className="flex flex-col gap-4">
-          {product.category?.title && (
-            <span className="text-primary text-xs font-medium uppercase tracking-wide">
-              {product.category.title}
-            </span>
-          )}
-          <h1 className="font-heading text-3xl text-primary">
-            {product.title}
-          </h1>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              {product.category?.title && (
+                <span className="text-primary text-xs font-medium uppercase tracking-wide">
+                  {product.category.title}
+                </span>
+              )}
+              <h1 className="font-heading text-3xl text-primary">
+                {product.title}
+              </h1>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleFavorite}
+              aria-label={
+                isFavorite ? "Убрать из избранного" : "Добавить в избранное"
+              }
+              aria-pressed={isFavorite}
+              className="border-border hover:text-destructive text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full border transition-colors"
+            >
+              <Heart
+                className={cn(
+                  "size-5",
+                  isFavorite && "fill-destructive text-destructive",
+                )}
+              />
+            </button>
+          </div>
           <p className="text-muted-foreground whitespace-pre-line">
             {product.description}
           </p>
-          <p className="text-2xl font-semibold">{formatPrice(product.price)}</p>
+
+          {product.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {product.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="border-gold-200/60 bg-gold-50 text-gold-700 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium"
+                >
+                  <Tag className="size-3" />
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <p className="flex items-baseline gap-2 text-2xl font-semibold">
+            {formatPrice(product.price)}
+            {hasDiscount && (
+              <span className="text-muted-foreground text-base font-normal line-through">
+                {formatPrice(product.oldPrice as number)}
+              </span>
+            )}
+          </p>
 
           <GoldDivider variant="sparkle" className="my-1 max-w-xs" />
 
@@ -166,6 +229,20 @@ export function ProductDetail({ id }: { id: string }) {
           </div>
         </div>
       </div>
+
+      {relatedProducts && relatedProducts.length > 0 && (
+        <section className="mt-16">
+          <GoldDivider variant="sparkle" className="mb-8" />
+          <h2 className="font-heading mb-6 text-2xl text-primary">
+            Похожие товары
+          </h2>
+          <ProductGrid>
+            {relatedProducts.map((related) => (
+              <ProductCard key={related.id} product={related} />
+            ))}
+          </ProductGrid>
+        </section>
+      )}
     </main>
   );
 }

@@ -54,3 +54,27 @@ const dateFormatter = new Intl.DateTimeFormat("ru-RU", {
 export function formatOrderDate(date: string) {
   return dateFormatter.format(new Date(date));
 }
+
+const dateTimeFormatter = new Intl.DateTimeFormat("ru-RU", {
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+export function formatOrderDateTime(date: string) {
+  return dateTimeFormatter.format(new Date(date));
+}
+
+const STATUS_SOURCE_LABEL: Record<string, string> = {
+  customer: "Покупатель",
+  admin: "Админ",
+  worker: "Сотрудник",
+  telegram: "Telegram-бот",
+  yookassa: "ЮKassa",
+  system: "Система",
+};
+
+export function getStatusSourceLabel(source: string) {
+  return STATUS_SOURCE_LABEL[source] ?? source;
+}

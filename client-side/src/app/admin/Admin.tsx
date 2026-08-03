@@ -7,17 +7,19 @@ import { useProfile } from "@/hooks/useProfile";
 import { AdminProducts } from "./AdminProducts";
 import { AdminCategories } from "./AdminCategories";
 import { AdminOrders } from "./AdminOrders";
+import { AdminAnalytics } from "./AdminAnalytics";
 
 interface AdminProps {
   hasAccessToken: boolean;
 }
 
-type Tab = "products" | "categories" | "orders";
+type Tab = "products" | "categories" | "orders" | "analytics";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "products", label: "Товары" },
   { value: "categories", label: "Категории" },
   { value: "orders", label: "Заказы" },
+  { value: "analytics", label: "Аналитика" },
 ];
 
 export function Admin({ hasAccessToken }: AdminProps) {
@@ -25,15 +27,17 @@ export function Admin({ hasAccessToken }: AdminProps) {
   const { data: user, isLoading } = useProfile(hasAccessToken);
   const [tab, setTab] = useState<Tab>("products");
 
-  const isAllowed = user?.role === "ADMIN" || user?.role === "WORKER";
+  const isAdmin = user?.role === "ADMIN";
 
   // JWT не содержит роль, поэтому proxy.ts (edge) не может отфильтровать
-  // не-админов заранее — проверяем роль здесь и уводим на главную.
+  // не-админов заранее — проверяем роль здесь. Полная админка — только для
+  // ADMIN; воркеров уводим в их собственный урезанный кабинет (см. /worker
+  // и обоснование в order.service.ts getForWorker), остальных — на главную.
   useEffect(() => {
-    if (!isLoading && !isAllowed) {
-      router.replace("/");
+    if (!isLoading && !isAdmin) {
+      router.replace(user?.role === "WORKER" ? "/worker" : "/");
     }
-  }, [isLoading, isAllowed, router]);
+  }, [isLoading, isAdmin, user?.role, router]);
 
   if (isLoading) {
     return (
@@ -43,7 +47,7 @@ export function Admin({ hasAccessToken }: AdminProps) {
     );
   }
 
-  if (!isAllowed) {
+  if (!isAdmin) {
     return (
       <main className="flex flex-1 items-center justify-center p-6">
         <p className="text-muted-foreground">Доступ запрещён</p>
@@ -77,6 +81,7 @@ export function Admin({ hasAccessToken }: AdminProps) {
       {tab === "products" && <AdminProducts />}
       {tab === "categories" && <AdminCategories />}
       {tab === "orders" && <AdminOrders />}
+      {tab === "analytics" && <AdminAnalytics />}
     </main>
   );
 }

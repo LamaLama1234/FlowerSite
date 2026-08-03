@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
+import { Tag, Zap } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ interface FormState {
   deliveryType: EnumDeliveryType;
   deliveryAddress: string;
   deliveryDate: string;
+  isAsap: boolean;
+  deliveryTimeSlot: string;
   comment: string;
 }
 
@@ -38,6 +41,8 @@ const EMPTY_FORM: FormState = {
   deliveryType: EnumDeliveryType.COURIER,
   deliveryAddress: "",
   deliveryDate: "",
+  isAsap: false,
+  deliveryTimeSlot: "",
   comment: "",
 };
 
@@ -45,6 +50,15 @@ const DELIVERY_OPTIONS = [
   { value: EnumDeliveryType.COURIER, label: "Курьером" },
   { value: EnumDeliveryType.PICKUP, label: "Самовывоз" },
 ] as const;
+
+const TIME_SLOTS = ["09:00–12:00", "12:00–15:00", "15:00–18:00", "18:00–21:00"];
+
+const timeOptionClass = (active: boolean) =>
+  `rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+    active
+      ? "ring-gold-300/50 border-primary bg-primary/10 text-primary ring-1"
+      : "border-gold-200/50 text-muted-foreground hover:text-foreground"
+  }`;
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -57,14 +71,50 @@ export function Checkout() {
   const total = useCartTotal();
   const hasHydrated = useCartHasHydrated();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discountPercent: number;
+  } | null>(null);
+
+  // Ставится перед clearCart() при успешном заказе — иначе обнуление
+  // корзины сразу же триггерит редирект на /cart ниже, обгоняя переход
+  // на /dashboard из onSuccess.
+  const orderSubmittedRef = useRef(false);
 
   // Ждём гидратацию корзины из localStorage, прежде чем решать, что она
   // пуста — иначе на каждой жёсткой перезагрузке будет ложный редирект.
   useEffect(() => {
-    if (hasHydrated && items.length === 0) {
+    if (hasHydrated && items.length === 0 && !orderSubmittedRef.current) {
       router.replace("/cart");
     }
   }, [hasHydrated, items.length, router]);
+
+  const discount = appliedPromo
+    ? Math.round((total * appliedPromo.discountPercent) / 100)
+    : 0;
+  const finalTotal = total - discount;
+
+  const validatePromoMutation = useMutation({
+    mutationFn: () =>
+      orderService.validatePromoCode(promoInput.trim(), form.phone),
+    onSuccess(data) {
+      if (data.valid && data.discountPercent) {
+        setAppliedPromo({
+          code: promoInput.trim().toUpperCase(),
+          discountPercent: data.discountPercent,
+        });
+        toast.success(`Промокод применён: −${data.discountPercent}%`);
+      } else {
+        setAppliedPromo(null);
+        toast.error(data.message ?? "Промокод недействителен");
+      }
+    },
+    onError(error) {
+      setAppliedPromo(null);
+      toast.error(extractErrorMessage(error));
+    },
+  });
 
   const { mutate, isPending } = useMutation({
     mutationFn: () =>
@@ -77,13 +127,17 @@ export function Checkout() {
             ? PICKUP_ADDRESS_PLACEHOLDER
             : form.deliveryAddress,
         deliveryDate: form.deliveryDate,
+        isAsap: form.isAsap,
+        deliveryTimeSlot: form.isAsap ? undefined : form.deliveryTimeSlot,
         comment: form.comment || undefined,
+        promoCode: appliedPromo?.code,
         items: items.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
         })),
       }),
     onSuccess() {
+      orderSubmittedRef.current = true;
       clearCart();
       toast.success("Заказ оформлен!");
       router.push("/dashboard");
@@ -98,6 +152,11 @@ export function Checkout() {
     value: FormState[K],
   ) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    // Промокод проверялся вместе с конкретным номером телефона — при его
+    // смене старая проверка больше не действительна.
+    if (field === "phone" && appliedPromo) {
+      setAppliedPromo(null);
+    }
   }
 
   function handleSubmit(event: React.FormEvent) {
@@ -139,10 +198,53 @@ export function Checkout() {
             </li>
           ))}
         </ul>
-        <div className="border-gold-200/50 flex items-center justify-between border-t pt-3 text-base font-semibold">
-          <span>Итого</span>
-          <span>{formatPrice(total)}</span>
+        <div className="border-gold-200/50 flex flex-col gap-1.5 border-t pt-3">
+          {appliedPromo && (
+            <div className="text-primary flex items-center justify-between text-sm font-medium">
+              <span>Скидка по промокоду {appliedPromo.code}</span>
+              <span>−{formatPrice(discount)}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between text-base font-semibold">
+            <span>Итого</span>
+            <span>{formatPrice(finalTotal)}</span>
+          </div>
         </div>
+      </div>
+
+      <div className="glass-panel relative mb-8 flex flex-col gap-2 rounded-2xl p-5 sm:flex-row sm:items-end">
+        <Field label="Промокод">
+          <input
+            type="text"
+            value={promoInput}
+            onChange={(e) => setPromoInput(e.target.value)}
+            placeholder="WELCOME10"
+            disabled={Boolean(appliedPromo)}
+            className={inputClass}
+          />
+        </Field>
+        {appliedPromo ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setAppliedPromo(null);
+              setPromoInput("");
+            }}
+          >
+            Убрать
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!promoInput.trim() || validatePromoMutation.isPending}
+            onClick={() => validatePromoMutation.mutate()}
+          >
+            <Tag className="size-4" />
+            {validatePromoMutation.isPending ? "Проверяем…" : "Применить"}
+          </Button>
+        )}
       </div>
 
       <GoldDivider variant="diamond" className="mb-8" />
@@ -217,6 +319,39 @@ export function Checkout() {
           />
         </Field>
 
+        <Field label="Время доставки">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                updateField("isAsap", true);
+                updateField("deliveryTimeSlot", "");
+              }}
+              className={timeOptionClass(form.isAsap)}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Zap className="size-3.5" />
+                Как можно быстрее
+              </span>
+            </button>
+            {TIME_SLOTS.map((slot) => (
+              <button
+                key={slot}
+                type="button"
+                onClick={() => {
+                  updateField("isAsap", false);
+                  updateField("deliveryTimeSlot", slot);
+                }}
+                className={timeOptionClass(
+                  !form.isAsap && form.deliveryTimeSlot === slot,
+                )}
+              >
+                {slot}
+              </button>
+            ))}
+          </div>
+        </Field>
+
         <Field label="Комментарий (необязательно)">
           <textarea
             value={form.comment}
@@ -231,10 +366,12 @@ export function Checkout() {
         <Button
           type="submit"
           size="lg"
-          disabled={isPending}
+          disabled={isPending || (!form.isAsap && !form.deliveryTimeSlot)}
           className="mt-2 h-11"
         >
-          {isPending ? "Оформляем…" : `Оформить заказ на ${formatPrice(total)}`}
+          {isPending
+            ? "Оформляем…"
+            : `Оформить заказ на ${formatPrice(finalTotal)}`}
         </Button>
       </form>
     </main>

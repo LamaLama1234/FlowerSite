@@ -10,6 +10,7 @@ import { YooCheckout, ICreatePayment } from '@a2seven/yoo-checkout'
 import { v4 as uuidv4 } from 'uuid'
 import { TelegramService } from 'src/telegram/telegram.service'
 import { parsePagination } from 'src/common/pagination'
+import { WELCOME_PROMO_CODE, WELCOME_PROMO_DISCOUNT_PERCENT } from './promo.constants'
 
 @Injectable()
 export class OrderService {
@@ -54,7 +55,7 @@ export class OrderService {
             // Вызываем через this.checkout
             const payment = await this.checkout.createPayment(createPayload, uuidv4());
 
-            return this.prisma.order.update({
+            const updated = await this.prisma.order.update({
                 where: { id: orderId },
                 data: {
                     paymentLink: payment.confirmation.confirmation_url,
@@ -63,6 +64,8 @@ export class OrderService {
                     status: EnumOrderStatus.AWAITING_PAYMENT
                 }
             });
+            await this.logStatusChange(orderId, EnumOrderStatus.AWAITING_PAYMENT, undefined, 'admin')
+            return updated;
         } catch (error) {
             console.error('YooCheckout Error:', error);
             throw new BadRequestException('Ошибка платежной системы: ' + error.message);
@@ -89,6 +92,7 @@ export class OrderService {
                 data: { status: EnumOrderStatus.CONFIRMED },
                 include: { items: { include: { product: true } } }
             });
+            await this.logStatusChange(orderId, EnumOrderStatus.CONFIRMED, undefined, 'yookassa')
 
             // 2. Получаем всех воркеров с telegramId, чтобы обновить им списки
             const workers = await this.prisma.user.findMany({
@@ -145,16 +149,154 @@ export class OrderService {
         return { items, total, page: pagination.page, limit: pagination.limit }
     }
 
+    /**
+     * Полная карточка заказа (с логом статусов). Намеренно доступна только
+     * ADMIN без ограничений — WORKER здесь приравнен к обычному USER
+     * (только свои заказы, которых у него как у сотрудника нет), чтобы
+     * не получить обходной путь к чужим данным клиента мимо getForWorker().
+     */
     async getById(id: string, user: { id: string, role: string }) {
-        const order = await this.prisma.order.findFirst({ 
-            where: { 
+        const order = await this.prisma.order.findFirst({
+            where: {
                 id,
-                ... (user.role === 'USER' ? { userId: user.id } : {}) 
+                ... (user.role === 'ADMIN' ? {} : { userId: user.id })
             },
-            include: { items: { include: { product: true } } }
+            include: {
+                items: { include: { product: true } },
+                // Полный лог смены статусов — только для деталей одного заказа
+                // в админке, не тащим это в списки (getAll), чтобы не раздувать ответ.
+                statusHistory: {
+                    orderBy: { createdAt: 'asc' },
+                    include: { changedByUser: { select: { name: true, role: true } } }
+                }
+            }
         })
         if (!order) throw new NotFoundException('Заказ не найден или доступ запрещен')
         return order
+    }
+
+    /**
+     * Урезанная карточка заказа для воркеров — те же поля, что и раньше
+     * уходили в Telegram-бот (см. prepareOrdersListData в telegram.service.ts).
+     * Никакого userId/email/платёжной ссылки/лога/промокода — явный select,
+     * а не include, чтобы лишние поля физически не могли утечь по ошибке.
+     */
+    async getForWorker() {
+        return this.prisma.order.findMany({
+            where: {
+                status: {
+                    in: [
+                        EnumOrderStatus.PENDING,
+                        EnumOrderStatus.AWAITING_PAYMENT,
+                        EnumOrderStatus.IN_PROGRESS,
+                        EnumOrderStatus.CONFIRMED,
+                        EnumOrderStatus.IN_DELIVERY
+                    ]
+                }
+            },
+            select: {
+                id: true,
+                createdAt: true,
+                status: true,
+                customerName: true,
+                phone: true,
+                deliveryType: true,
+                deliveryAddress: true,
+                deliveryDate: true,
+                isAsap: true,
+                deliveryTimeSlot: true,
+                comment: true,
+                total: true,
+                items: {
+                    select: {
+                        id: true,
+                        quantity: true,
+                        price: true,
+                        product: { select: { title: true } }
+                    }
+                }
+            },
+            orderBy: { createdAt: 'asc' }
+        })
+    }
+
+    /**
+     * Данные для админской аналитики: выручка по дням за последние N дней,
+     * топ товаров по выручке (за всё время — иначе список почти пустой на
+     * маленьких объёмах), разбивка по статусам и сводные KPI. Отменённые
+     * заказы никуда не считаются — это не состоявшаяся выручка.
+     */
+    async getAnalytics(days = 30) {
+        const since = new Date()
+        since.setDate(since.getDate() - (days - 1))
+        since.setHours(0, 0, 0, 0)
+
+        const periodOrders = await this.prisma.order.findMany({
+            where: {
+                status: { not: EnumOrderStatus.CANCELLED },
+                createdAt: { gte: since }
+            },
+            select: { createdAt: true, total: true, status: true }
+        })
+
+        const revenueByDayMap = new Map<string, number>()
+        for (let i = 0; i < days; i++) {
+            const day = new Date(since)
+            day.setDate(day.getDate() + i)
+            revenueByDayMap.set(day.toISOString().slice(0, 10), 0)
+        }
+        for (const order of periodOrders) {
+            const key = order.createdAt.toISOString().slice(0, 10)
+            revenueByDayMap.set(key, (revenueByDayMap.get(key) ?? 0) + order.total)
+        }
+        const revenueByDay = Array.from(revenueByDayMap.entries()).map(([date, revenue]) => ({
+            date,
+            revenue
+        }))
+
+        const totalRevenue = periodOrders.reduce((sum, o) => sum + o.total, 0)
+        const totalOrders = periodOrders.length
+        const averageOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0
+
+        const statusCounts = new Map<string, number>()
+        for (const order of periodOrders) {
+            statusCounts.set(order.status, (statusCounts.get(order.status) ?? 0) + 1)
+        }
+        const ordersByStatus = Array.from(statusCounts.entries())
+            .map(([status, count]) => ({ status, count }))
+            .sort((a, b) => b.count - a.count)
+
+        const allItems = await this.prisma.orderItem.findMany({
+            where: { order: { status: { not: EnumOrderStatus.CANCELLED } } },
+            select: {
+                productId: true,
+                quantity: true,
+                price: true,
+                product: { select: { title: true } }
+            }
+        })
+        const productMap = new Map<string, { title: string; quantity: number; revenue: number }>()
+        for (const item of allItems) {
+            const existing = productMap.get(item.productId) ?? {
+                title: item.product.title,
+                quantity: 0,
+                revenue: 0
+            }
+            existing.quantity += item.quantity
+            existing.revenue += item.quantity * item.price
+            productMap.set(item.productId, existing)
+        }
+        const topProducts = Array.from(productMap.entries())
+            .map(([productId, data]) => ({ productId, ...data }))
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 8)
+
+        return {
+            summary: { totalRevenue, totalOrders, averageOrderValue },
+            revenueByDay,
+            ordersByStatus,
+            topProducts
+        }
     }
 
     async getByUserId(targetUserId: string, currentUser: { id: string, role: string }) {
@@ -169,6 +311,38 @@ export class OrderService {
         })
     }
 
+    private normalizePhone(phone: string) {
+        return phone.replace(/\D/g, '')
+    }
+
+    async validatePromoCode(code: string | undefined, phone: string | undefined) {
+        const normalizedCode = code?.trim().toUpperCase()
+        if (!normalizedCode || normalizedCode !== WELCOME_PROMO_CODE) {
+            return { valid: false as const, message: 'Промокод не найден' }
+        }
+
+        const normalizedPhone = phone ? this.normalizePhone(phone) : ''
+        if (!normalizedPhone) {
+            return { valid: false as const, message: 'Сначала укажите номер телефона' }
+        }
+
+        // Сверяем по телефону, а не по аккаунту — иначе промокод "для новых"
+        // можно было бы получать бесконечно, просто регистрируя новые email.
+        const existing = await this.prisma.$queryRaw<{ id: string }[]>`
+            SELECT id FROM "order"
+            WHERE regexp_replace(phone, '\\D', '', 'g') = ${normalizedPhone}
+            LIMIT 1
+        `
+        if (existing.length > 0) {
+            return {
+                valid: false as const,
+                message: 'Промокод уже был использован с этим номером телефона'
+            }
+        }
+
+        return { valid: true as const, discountPercent: WELCOME_PROMO_DISCOUNT_PERCENT }
+    }
+
     async create(dto: OrderDto, userId: string) {
         const productIds = dto.items.map(item => item.productId);
         const products = await this.prisma.product.findMany({
@@ -179,23 +353,39 @@ export class OrderService {
         const itemsData = dto.items.map(item => {
             const product = products.find(p => p.id === item.productId);
             if (!product) throw new NotFoundException(`Товар ${item.productId} не найден`);
-            
+
             total += product.price * item.quantity;
-            return { 
-                quantity: item.quantity, 
-                price: product.price, 
-                productId: item.productId 
+            return {
+                quantity: item.quantity,
+                price: product.price,
+                productId: item.productId
             };
         });
+
+        let discount = 0
+        let appliedPromoCode: string | null = null
+        if (dto.promoCode) {
+            const result = await this.validatePromoCode(dto.promoCode, dto.phone)
+            if (!result.valid) {
+                throw new BadRequestException(result.message)
+            }
+            discount = Math.round(total * (result.discountPercent / 100))
+            appliedPromoCode = WELCOME_PROMO_CODE
+            total -= discount
+        }
 
         const order = await this.prisma.order.create({
             data: {
                 total,
+                discount,
+                promoCode: appliedPromoCode,
                 customerName: dto.customerName,
                 phone: dto.phone,
                 deliveryType: dto.deliveryType,
                 deliveryAddress: dto.deliveryAddress,
                 deliveryDate: new Date(dto.deliveryDate),
+                isAsap: dto.isAsap ?? false,
+                deliveryTimeSlot: dto.isAsap ? null : dto.deliveryTimeSlot,
                 comment: dto.comment,
                 status: EnumOrderStatus.PENDING,
                 userId: userId,
@@ -203,6 +393,8 @@ export class OrderService {
             },
             include: { items: { include: { product: true } } }
         });
+
+        await this.logStatusChange(order.id, EnumOrderStatus.PENDING, userId, 'customer')
 
         // Не ждём отправку в Telegram — она не должна задерживать ответ
         // клиенту и не должна валить создание заказа при сбое бота.
@@ -228,7 +420,7 @@ export class OrderService {
 
     const itemsData = items ? await this.mapItemsWithPrice(items) : undefined;
     const total = itemsData ? itemsData.reduce((sum, item) => sum + (item.price * item.quantity), 0) : undefined;
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
         where: { id: orderId },
         data: {
             ...orderData,
@@ -240,6 +432,12 @@ export class OrderService {
                 } : undefined
             }
         })
+
+    if (status !== undefined && status !== order.status) {
+        await this.logStatusChange(orderId, status, user.id, user.role === 'ADMIN' ? 'admin' : 'worker')
+    }
+
+    return updated
     }
 
     async delete(id: string, user: { id: string, role: string }) {
@@ -259,13 +457,34 @@ export class OrderService {
         return this.prisma.order.delete({ where: { id: order.id } });
     }
 
-    async updateStatus(orderId: string, status: string, paymentLink?: string) {
-    return this.prisma.order.update({
-        where: { id: orderId },
-        data: {
-            status: status as EnumOrderStatus,
-            paymentLink: paymentLink || undefined
-            }
+    async updateStatus(
+        orderId: string,
+        status: string,
+        paymentLink?: string,
+        changedBy?: string,
+        source: string = 'admin'
+    ) {
+        const updated = await this.prisma.order.update({
+            where: { id: orderId },
+            data: {
+                status: status as EnumOrderStatus,
+                paymentLink: paymentLink || undefined
+                }
+            })
+
+        await this.logStatusChange(orderId, status as EnumOrderStatus, changedBy, source)
+
+        return updated
+    }
+
+    private async logStatusChange(
+        orderId: string,
+        status: EnumOrderStatus,
+        changedBy?: string,
+        source: string = 'system'
+    ) {
+        await this.prisma.orderStatusHistory.create({
+            data: { orderId, status, changedBy, source }
         })
     }
 

@@ -32,7 +32,7 @@ export class OrderController {
     constructor(private readonly orderService: OrderService) {}
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles('ADMIN', 'WORKER')
+    @Roles('ADMIN')
     @Get()
     async getAll(
         @CurrentUser() user: { id: string; role: string },
@@ -41,6 +41,22 @@ export class OrderController {
         @Query('limit') limit?: string
     ) {
         return this.orderService.getAll(user, searchTerm, page, limit);
+    }
+
+    // Урезанные данные для воркеров — как в Telegram-боте, без email/платежей/лога.
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles('ADMIN', 'WORKER')
+    @Get('worker-view')
+    async getForWorker() {
+        return this.orderService.getForWorker();
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles('ADMIN')
+    @Get('analytics')
+    async getAnalytics(@Query('days') days?: string) {
+        const parsedDays = Number(days)
+        return this.orderService.getAnalytics(Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : undefined);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -61,6 +77,16 @@ export class OrderController {
     @Post()
     async create(@Body() dto: OrderDto, @CurrentUser('id') userId: string) {
         return this.orderService.create(dto, userId);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @HttpCode(200)
+    @Post('validate-promo')
+    async validatePromo(
+        @Body('promoCode') promoCode: string,
+        @Body('phone') phone: string
+    ) {
+        return this.orderService.validatePromoCode(promoCode, phone);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -96,10 +122,11 @@ export class OrderController {
     @Roles('ADMIN', 'WORKER')
     @Patch(':id/status')
     async updateStatus(
-        @Param('id') id: string, 
-        @Body('status') status: EnumOrderStatus
+        @Param('id') id: string,
+        @Body('status') status: EnumOrderStatus,
+        @CurrentUser() user: { id: string; role: string }
     ) {
-        return this.orderService.updateStatus(id, status);
+        return this.orderService.updateStatus(id, status, undefined, user.id, user.role === 'ADMIN' ? 'admin' : 'worker');
     }
 
 
