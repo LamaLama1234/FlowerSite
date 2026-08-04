@@ -9,11 +9,17 @@ import { FileModule } from './file/file.module'
 import { OrderModule } from './order/order.module'
 import { ProductModule } from './product/product.module'
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
+import { envValidationSchema } from './config/env.validation'
 
 @Module({
     imports: [
         ConfigModule.forRoot({
-            isGlobal: true
+            isGlobal: true,
+            validationSchema: envValidationSchema,
+            // abortEarly: false — показать сразу все проблемные переменные,
+            // а не только первую попавшуюся (иначе чинить .env пришлось бы
+            // по одной ошибке за перезапуск).
+            validationOptions: { abortEarly: false }
         }),
         // Настройка защиты от брутфорса
         ThrottlerModule.forRoot([{

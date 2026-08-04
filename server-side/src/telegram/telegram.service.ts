@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { Telegraf, Markup } from 'telegraf';
 import { PrismaService } from 'src/prisma.service';
 import { OrderService } from 'src/order/order.service';
+import { OrderPaymentService } from 'src/order/order-payment.service';
 import * as argon2 from 'argon2';
 import { EnumOrderStatus } from '@prisma/client';
 
@@ -13,6 +14,8 @@ export class TelegramService implements OnModuleInit {
         private prisma: PrismaService,
         @Inject(forwardRef(() => OrderService))
         private orderService: OrderService,
+        @Inject(forwardRef(() => OrderPaymentService))
+        private paymentService: OrderPaymentService,
     ) {
         const token = process.env.TELEGRAM_BOT_TOKEN;
         if (!token) throw new Error('TELEGRAM_BOT_TOKEN is missing in .env');
@@ -76,7 +79,7 @@ export class TelegramService implements OnModuleInit {
                         });
 
                         if (order) {
-                            await this.orderService.setPaymentDetails(order.id, deliveryPrice);
+                            await this.paymentService.setPaymentDetails(order.id, deliveryPrice);
                             await ctx.reply(`✅ Для заказа #${shortId} установлена доставка ${deliveryPrice}₽.`);
                             return this.sendOrdersList(tgId);
                         }

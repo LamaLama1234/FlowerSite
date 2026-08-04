@@ -5,6 +5,9 @@ interface StatusMeta {
   className: string;
 }
 
+// Палитра статусов держится на трёх токенах проекта (primary/gold/destructive)
+// плюс нейтральном muted — состояние в первую очередь несёт текст лейбла,
+// цвет лишь мягко группирует "в процессе" / "ожидает действия" / "отменён".
 const ORDER_STATUS_META: Record<EnumOrderStatus, StatusMeta> = {
   [EnumOrderStatus.PENDING]: {
     label: "В ожидании",
@@ -12,7 +15,7 @@ const ORDER_STATUS_META: Record<EnumOrderStatus, StatusMeta> = {
   },
   [EnumOrderStatus.AWAITING_PAYMENT]: {
     label: "Ждёт оплаты",
-    className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    className: "bg-gold-100 text-gold-700",
   },
   [EnumOrderStatus.CONFIRMED]: {
     label: "Подтверждён",
@@ -24,11 +27,11 @@ const ORDER_STATUS_META: Record<EnumOrderStatus, StatusMeta> = {
   },
   [EnumOrderStatus.IN_DELIVERY]: {
     label: "В доставке",
-    className: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    className: "bg-gold-100 text-gold-700",
   },
   [EnumOrderStatus.COMPLETED]: {
     label: "Выполнен",
-    className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    className: "bg-primary/10 text-primary",
   },
   [EnumOrderStatus.CANCELLED]: {
     label: "Отменён",

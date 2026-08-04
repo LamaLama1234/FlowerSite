@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Phone } from "lucide-react";
@@ -56,6 +56,14 @@ export function Worker({ hasAccessToken }: WorkerProps) {
     },
   });
 
+  const { mutate: updateStatus } = updateStatusMutation;
+  const handleStatusChange = useCallback(
+    (id: string, status: EnumOrderStatus) => {
+      updateStatus({ id, status });
+    },
+    [updateStatus],
+  );
+
   if (isLoading) {
     return (
       <main className="flex flex-1 items-center justify-center p-6">
@@ -99,9 +107,7 @@ export function Worker({ hasAccessToken }: WorkerProps) {
             <WorkerOrderCard
               key={order.id}
               order={order}
-              onStatusChange={(status) =>
-                updateStatusMutation.mutate({ id: order.id, status })
-              }
+              onStatusChange={handleStatusChange}
             />
           ))}
         </ul>
@@ -110,12 +116,16 @@ export function Worker({ hasAccessToken }: WorkerProps) {
   );
 }
 
-function WorkerOrderCard({
+// memo — карточка не должна перерисовываться при обновлении статуса
+// соседних заказов: order стабилен между рендерами (React Query),
+// onStatusChange теперь принимает id и завязан на useCallback в Worker,
+// а не создаётся заново на каждую карточку при каждом рендере списка.
+const WorkerOrderCard = memo(function WorkerOrderCard({
   order,
   onStatusChange,
 }: {
   order: IWorkerOrder;
-  onStatusChange: (status: EnumOrderStatus) => void;
+  onStatusChange: (id: string, status: EnumOrderStatus) => void;
 }) {
   const meta = getOrderStatusMeta(order.status);
 
@@ -132,7 +142,9 @@ function WorkerOrderCard({
         </div>
         <select
           value={order.status}
-          onChange={(e) => onStatusChange(e.target.value as EnumOrderStatus)}
+          onChange={(e) =>
+            onStatusChange(order.id, e.target.value as EnumOrderStatus)
+          }
           className={`rounded-full border-0 px-3 py-1 text-xs font-medium outline-none ${meta.className}`}
         >
           {STATUS_OPTIONS.map((status) => (
@@ -207,4 +219,4 @@ function WorkerOrderCard({
       </div>
     </li>
   );
-}
+});

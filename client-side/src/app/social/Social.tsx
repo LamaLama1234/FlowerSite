@@ -25,7 +25,7 @@ export function Social() {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="border-gold-200/50 hover:border-gold-300/70 group relative flex items-center gap-4 overflow-hidden rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_28px_-10px_rgba(184,147,91,0.22)]"
+            className="border-gold-200/50 hover:border-gold-300/70 group bg-card relative flex items-center gap-4 overflow-hidden rounded-2xl border p-5 transition-colors duration-150"
           >
             <CornerFlourish corner="tr" />
 

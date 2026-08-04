@@ -145,7 +145,7 @@ export function ProductDetail({ id }: { id: string }) {
           )}
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col">
           <div className="flex items-start justify-between gap-4">
             <div>
               {product.category?.title && (
@@ -175,12 +175,12 @@ export function ProductDetail({ id }: { id: string }) {
               />
             </button>
           </div>
-          <p className="text-muted-foreground whitespace-pre-line">
+          <p className="text-muted-foreground mt-3 whitespace-pre-line">
             {product.description}
           </p>
 
           {product.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="mt-5 flex flex-wrap gap-2">
               {product.tags.map((tag) => (
                 <span
                   key={tag}
@@ -193,7 +193,7 @@ export function ProductDetail({ id }: { id: string }) {
             </div>
           )}
 
-          <p className="flex items-baseline gap-2 text-2xl font-semibold">
+          <p className="mt-6 flex items-baseline gap-2 text-2xl font-semibold">
             {formatPrice(product.price)}
             {hasDiscount && (
               <span className="text-muted-foreground text-base font-normal line-through">

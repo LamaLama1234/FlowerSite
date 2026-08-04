@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,8 @@ const EMPTY_FORM: ProductFormState = {
   categoryId: "",
 };
 
+const PAGE_SIZE = 20;
+
 function splitCommaList(value: string): string[] {
   return value
     .split(",")
@@ -65,9 +67,19 @@ function toInput(form: ProductFormState): IProductInput {
 
 export function AdminProducts() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useProducts();
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useProducts({ page, limit: PAGE_SIZE });
   const { data: categories } = useCategories();
   const products = data?.items;
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
+
+  // Если после удаления товара текущая страница опустела (например, удалили
+  // последний товар на последней странице) — сразу подвинуться на последнюю
+  // непустую. Сравнение прямо в рендере — тот же паттерн, что и в Catalog.tsx.
+  if (data && page > totalPages) {
+    setPage(totalPages);
+  }
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormState>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<IProduct | null>(null);
@@ -114,7 +126,7 @@ export function AdminProducts() {
     },
   });
 
-  function startEdit(product: IProduct) {
+  const startEdit = useCallback((product: IProduct) => {
     setEditingId(product.id);
     setForm({
       title: product.title,
@@ -125,7 +137,7 @@ export function AdminProducts() {
       tagsText: product.tags?.join(", ") ?? "",
       categoryId: product.categoryId ?? "",
     });
-  }
+  }, []);
 
   function cancelEdit() {
     setEditingId(null);
@@ -153,81 +165,76 @@ export function AdminProducts() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-      <div className="glass-panel overflow-hidden rounded-2xl">
-        <table className="w-full text-sm">
-          <thead className="border-gold-200/50 text-muted-foreground border-b text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Название</th>
-              <th className="px-4 py-3 font-medium">Цена</th>
-              <th className="px-4 py-3 font-medium">Категория</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
+      <div className="flex flex-col gap-4">
+        <div className="glass-panel overflow-hidden rounded-2xl">
+          <table className="w-full text-sm">
+            <thead className="border-gold-200/50 text-muted-foreground border-b text-left">
               <tr>
-                <td className="text-muted-foreground px-4 py-6" colSpan={4}>
-                  Загрузка…
-                </td>
+                <th className="px-4 py-3 font-medium">Название</th>
+                <th className="px-4 py-3 font-medium">Цена</th>
+                <th className="px-4 py-3 font-medium">Категория</th>
+                <th className="px-4 py-3" />
               </tr>
-            ) : !products?.length ? (
-              <tr>
-                <td className="text-muted-foreground px-4 py-6" colSpan={4}>
-                  Товаров пока нет
-                </td>
-              </tr>
-            ) : (
-              products.map((product) => (
-                <tr
-                  key={product.id}
-                  className="border-gold-100/60 border-b last:border-0"
-                >
-                  <td className="max-w-52 truncate px-4 py-3 font-medium">
-                    {product.title}
-                  </td>
-                  <td className="px-4 py-3">
-                    {formatPrice(product.price)}
-                    {product.oldPrice && product.oldPrice > product.price && (
-                      <span className="text-muted-foreground ml-1.5 text-xs line-through">
-                        {formatPrice(product.oldPrice)}
-                      </span>
-                    )}
-                  </td>
-                  <td className="text-muted-foreground px-4 py-3">
-                    {product.category?.title ?? "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        onClick={() => startEdit(product)}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        className="hover:text-destructive"
-                        aria-label={`Удалить товар «${product.title}»`}
-                        onClick={() => setDeleteTarget(product)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td className="text-muted-foreground px-4 py-6" colSpan={4}>
+                    Загрузка…
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : !products?.length ? (
+                <tr>
+                  <td className="text-muted-foreground px-4 py-6" colSpan={4}>
+                    Товаров пока нет
+                  </td>
+                </tr>
+              ) : (
+                products.map((product) => (
+                  <ProductRow
+                    key={product.id}
+                    product={product}
+                    onEdit={startEdit}
+                    onDelete={setDeleteTarget}
+                  />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              aria-label="Предыдущая страница"
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-muted-foreground text-sm">
+              Страница {page} из {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              aria-label="Следующая страница"
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <form
         onSubmit={handleSubmit}
         className="glass-panel flex h-fit flex-col gap-3 rounded-2xl p-5"
       >
-        <h2 className="text-primary flex items-center justify-between text-sm font-semibold">
+        <h2 className="text-primary flex items-center justify-between text-lg font-semibold">
           {editingId ? "Редактировать товар" : "Новый товар"}
           {editingId && (
             <button
@@ -335,3 +342,52 @@ export function AdminProducts() {
 
 const inputClass =
   "w-full rounded-lg border border-gold-200/50 bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30";
+
+// memo — строки таблицы не должны перерисовываться при каждом наборе
+// текста в соседней форме создания/редактирования: product и оба колбэка
+// (startEdit через useCallback, setDeleteTarget как сеттер стейта) держат
+// стабильные ссылки между рендерами AdminProducts.
+const ProductRow = memo(function ProductRow({
+  product,
+  onEdit,
+  onDelete,
+}: {
+  product: IProduct;
+  onEdit: (product: IProduct) => void;
+  onDelete: (product: IProduct) => void;
+}) {
+  return (
+    <tr className="border-gold-100/60 border-b last:border-0">
+      <td className="max-w-52 truncate px-4 py-3 font-medium">
+        {product.title}
+      </td>
+      <td className="px-4 py-3">
+        {formatPrice(product.price)}
+        {product.oldPrice && product.oldPrice > product.price && (
+          <span className="text-muted-foreground ml-1.5 text-xs line-through">
+            {formatPrice(product.oldPrice)}
+          </span>
+        )}
+      </td>
+      <td className="text-muted-foreground px-4 py-3">
+        {product.category?.title ?? "—"}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex justify-end gap-1">
+          <Button size="icon-sm" variant="ghost" onClick={() => onEdit(product)}>
+            <Pencil className="size-3.5" />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="hover:text-destructive"
+            aria-label={`Удалить товар «${product.title}»`}
+            onClick={() => onDelete(product)}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+});

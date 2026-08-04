@@ -194,8 +194,8 @@ export function Auth() {
 
   if (view === "forgot-password") {
     return (
-      <main className="flex flex-1 items-center justify-center bg-gradient-to-br from-emerald-50 via-background to-emerald-100 p-4 dark:from-emerald-950/40 dark:via-background dark:to-emerald-900/30">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card/80 p-8 shadow-xl shadow-emerald-900/5 backdrop-blur">
+      <main className="bg-background flex flex-1 items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8">
           <button
             type="button"
             onClick={() => setView("form")}
@@ -312,8 +312,8 @@ export function Auth() {
   const isPending = loginMutation.isPending || registerMutation.isPending;
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-gradient-to-br from-emerald-50 via-background to-emerald-100 p-4 dark:from-emerald-950/40 dark:via-background dark:to-emerald-900/30">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card/80 p-8 shadow-xl shadow-emerald-900/5 backdrop-blur">
+    <main className="bg-background flex flex-1 items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8">
         <div className="mb-8 flex flex-col items-center gap-2 text-center">
           <span className="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
             <Leaf className="size-6" />
@@ -480,8 +480,8 @@ function CodeScreen({
   footer?: React.ReactNode;
 }) {
   return (
-    <main className="flex flex-1 items-center justify-center bg-gradient-to-br from-emerald-50 via-background to-emerald-100 p-4 dark:from-emerald-950/40 dark:via-background dark:to-emerald-900/30">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card/80 p-8 shadow-xl shadow-emerald-900/5 backdrop-blur">
+    <main className="bg-background flex flex-1 items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8">
         <button
           type="button"
           onClick={onBack}

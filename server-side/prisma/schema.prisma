@@ -68,6 +68,10 @@ model Product {
   category    Category?   @relation(fields: [categoryId], references: [id])
 
   @@index([categoryId])
+  // GIN — под hasSome/hasEvery по tags (getRelated в product.service.ts,
+  // будущие фильтры каталога по тегам); обычный B-tree тут не работает
+  // для поиска внутри массива.
+  @@index([tags], type: Gin)
   @@map("product")
 }
 

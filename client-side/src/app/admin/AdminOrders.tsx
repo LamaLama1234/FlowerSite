@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, History, Info } from "lucide-react";
 import toast from "react-hot-toast";
@@ -15,7 +15,11 @@ import {
 import { useAdminOrders } from "@/hooks/useAdminOrders";
 import { useOrderDetail } from "@/hooks/useOrderDetail";
 import { orderService } from "@/services/order.service";
-import { EnumDeliveryType, EnumOrderStatus } from "@/shared/types/order.interface";
+import {
+  EnumDeliveryType,
+  EnumOrderStatus,
+  type IOrder,
+} from "@/shared/types/order.interface";
 import { formatPrice } from "@/utils/product";
 import {
   formatOrderDate,
@@ -50,6 +54,14 @@ export function AdminOrders() {
     },
   });
 
+  const { mutate: updateStatus } = updateStatusMutation;
+  const handleStatusChange = useCallback(
+    (id: string, status: EnumOrderStatus) => {
+      updateStatus({ id, status });
+    },
+    [updateStatus],
+  );
+
   return (
     <div className="glass-panel overflow-hidden rounded-2xl">
       <table className="w-full text-sm">
@@ -77,52 +89,14 @@ export function AdminOrders() {
               </td>
             </tr>
           ) : (
-            orders.map((order) => {
-              const meta = getOrderStatusMeta(order.status);
-              return (
-                <tr
-                  key={order.id}
-                  className="border-gold-100/60 border-b last:border-0"
-                >
-                  <td className="px-4 py-3 font-medium">
-                    №{order.id.slice(-6)}
-                  </td>
-                  <td className="px-4 py-3">{order.customerName}</td>
-                  <td className="text-muted-foreground px-4 py-3">
-                    {formatOrderDate(order.createdAt)}
-                  </td>
-                  <td className="px-4 py-3">{formatPrice(order.total)}</td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={order.status}
-                      onChange={(e) =>
-                        updateStatusMutation.mutate({
-                          id: order.id,
-                          status: e.target.value as EnumOrderStatus,
-                        })
-                      }
-                      className={`rounded-full border-0 px-3 py-1 text-xs font-medium outline-none ${meta.className}`}
-                    >
-                      {STATUS_OPTIONS.map((status) => (
-                        <option key={status} value={status}>
-                          {getOrderStatusMeta(status).label}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      onClick={() => setDetailId(order.id)}
-                      aria-label={`Подробнее о заказе №${order.id.slice(-6)}`}
-                    >
-                      <Info className="size-3.5" />
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })
+            orders.map((order) => (
+              <OrderRow
+                key={order.id}
+                order={order}
+                onStatusChange={handleStatusChange}
+                onOpenDetail={setDetailId}
+              />
+            ))
           )}
         </tbody>
       </table>
@@ -134,6 +108,57 @@ export function AdminOrders() {
     </div>
   );
 }
+
+// memo — строки таблицы не должны перерисовываться при каждом открытии
+// диалога деталей (смена detailId): order приходит из React Query
+// (стабильная ссылка), а onStatusChange/onOpenDetail — стабильные колбэки
+// (useCallback поверх mutate и сеттер стейта соответственно).
+const OrderRow = memo(function OrderRow({
+  order,
+  onStatusChange,
+  onOpenDetail,
+}: {
+  order: IOrder;
+  onStatusChange: (id: string, status: EnumOrderStatus) => void;
+  onOpenDetail: (id: string) => void;
+}) {
+  const meta = getOrderStatusMeta(order.status);
+  return (
+    <tr className="border-gold-100/60 border-b last:border-0">
+      <td className="px-4 py-3 font-medium">№{order.id.slice(-6)}</td>
+      <td className="px-4 py-3">{order.customerName}</td>
+      <td className="text-muted-foreground px-4 py-3">
+        {formatOrderDate(order.createdAt)}
+      </td>
+      <td className="px-4 py-3">{formatPrice(order.total)}</td>
+      <td className="px-4 py-3">
+        <select
+          value={order.status}
+          onChange={(e) =>
+            onStatusChange(order.id, e.target.value as EnumOrderStatus)
+          }
+          className={`rounded-full border-0 px-3 py-1 text-xs font-medium outline-none ${meta.className}`}
+        >
+          {STATUS_OPTIONS.map((status) => (
+            <option key={status} value={status}>
+              {getOrderStatusMeta(status).label}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={() => onOpenDetail(order.id)}
+          aria-label={`Подробнее о заказе №${order.id.slice(-6)}`}
+        >
+          <Info className="size-3.5" />
+        </Button>
+      </td>
+    </tr>
+  );
+});
 
 function OrderDetailDialog({
   orderId,

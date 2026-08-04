@@ -14,6 +14,9 @@ import {
     Patch
 } from '@nestjs/common'
 import { OrderService } from './order.service'
+import { OrderPaymentService } from './order-payment.service'
+import { OrderAnalyticsService } from './order-analytics.service'
+import { PromoService } from './promo.service'
 import { Auth } from 'src/auth/decorators/auth.decorator'
 import { CurrentUser } from 'src/user/decorators/user.decorator'
 import { OrderDto } from './dto/order.dto' // Твой DTO
@@ -29,7 +32,12 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
 @ApiTags('Orders')
 @Controller('orders')
 export class OrderController {
-    constructor(private readonly orderService: OrderService) {}
+    constructor(
+        private readonly orderService: OrderService,
+        private readonly paymentService: OrderPaymentService,
+        private readonly analyticsService: OrderAnalyticsService,
+        private readonly promoService: PromoService
+    ) {}
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles('ADMIN')
@@ -56,7 +64,7 @@ export class OrderController {
     @Get('analytics')
     async getAnalytics(@Query('days') days?: string) {
         const parsedDays = Number(days)
-        return this.orderService.getAnalytics(Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : undefined);
+        return this.analyticsService.getAnalytics(Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : undefined);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -86,7 +94,7 @@ export class OrderController {
         @Body('promoCode') promoCode: string,
         @Body('phone') phone: string
     ) {
-        return this.orderService.validatePromoCode(promoCode, phone);
+        return this.promoService.validatePromoCode(promoCode, phone);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -107,7 +115,7 @@ export class OrderController {
         @Param('id') id: string,
         @Body('shippingPrice') shippingPrice: number 
     ) {
-        return this.orderService.setPaymentDetails(id, shippingPrice);
+        return this.paymentService.setPaymentDetails(id, shippingPrice);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -132,6 +140,6 @@ export class OrderController {
 
     @Post('webhook/yookassa')
     async yookassaWebhook(@Body() body: any) {
-        return this.orderService.handleWebhook(body);
+        return this.paymentService.handleWebhook(body);
     }
 }

@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import createBundleAnalyzer from "@next/bundle-analyzer";
+
+// Разовый анализ состава бандла: ANALYZE=true npm run build открывает
+// HTML-отчёт по каждому чанку. Без флага — обычный no-op.
+const withBundleAnalyzer = createBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 // Абсолютный путь к этому проекту (client-side), не зависящий от cwd.
 // Прибиваем сюда корень Turbopack и трейсинга, чтобы Next ни при каких
@@ -57,4 +64,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

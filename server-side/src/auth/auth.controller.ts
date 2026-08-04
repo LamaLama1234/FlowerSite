@@ -24,6 +24,13 @@ import { OAuthStateGuard, OAUTH_STATE_COOKIE } from './guards/oauth-state.guard'
 import { GoogleOAuthInitGuard } from './guards/google-oauth-init.guard'
 import { YandexOAuthInitGuard } from './guards/yandex-oauth-init.guard'
 import { AuthGuard } from '@nestjs/passport'
+import { Throttle } from '@nestjs/throttler'
+
+// Отдельно от общего лимита в ThrottlerModule.forRoot (50/мин на всё API) —
+// эти эндпоинты либо проверяют пароль/код (подбор), либо реально шлют
+// письма (спам чужого почтового ящика), так что им нужен лимит строже.
+const AUTH_ATTEMPT_THROTTLE = { default: { limit: 5, ttl: 60_000 } }
+const CODE_ATTEMPT_THROTTLE = { default: { limit: 10, ttl: 60_000 } }
 
 @Controller('auth')
 export class AuthController {
@@ -33,6 +40,7 @@ export class AuthController {
 		private readonly configService: ConfigService
 	) {}
 
+	@Throttle(AUTH_ATTEMPT_THROTTLE)
 	@UsePipes(new ValidationPipe())
 	@HttpCode(200)
 	@Post('login')
@@ -47,6 +55,7 @@ export class AuthController {
 		return response
 	}
 
+	@Throttle(AUTH_ATTEMPT_THROTTLE)
 	@UsePipes(new ValidationPipe())
 	@HttpCode(200)
 	@Post('register')
@@ -56,6 +65,7 @@ export class AuthController {
 		return this.authService.register(dto)
 	}
 
+	@Throttle(AUTH_ATTEMPT_THROTTLE)
 	@UsePipes(new ValidationPipe())
 	@HttpCode(200)
 	@Post('resend-code')
@@ -63,6 +73,7 @@ export class AuthController {
 		return this.authService.resendCode(dto)
 	}
 
+	@Throttle(CODE_ATTEMPT_THROTTLE)
 	@UsePipes(new ValidationPipe())
 	@HttpCode(200)
 	@Post('verify-email')
@@ -78,6 +89,7 @@ export class AuthController {
 		return response
 	}
 
+	@Throttle(AUTH_ATTEMPT_THROTTLE)
 	@UsePipes(new ValidationPipe())
 	@HttpCode(200)
 	@Post('forgot-password')
@@ -85,6 +97,7 @@ export class AuthController {
 		return this.authService.forgotPassword(dto)
 	}
 
+	@Throttle(CODE_ATTEMPT_THROTTLE)
 	@UsePipes(new ValidationPipe())
 	@HttpCode(200)
 	@Post('reset-password')

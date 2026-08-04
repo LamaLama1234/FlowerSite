@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Flower2, Heart, ShoppingCart } from "lucide-react";
@@ -11,7 +12,16 @@ import { useFavoritesStore, useIsFavorite } from "@/stores/favorites.store";
 import { CornerFlourish } from "@/components/decorative/CornerFlourish";
 import { cn } from "@/lib/utils";
 
-export function ProductCard({ product }: { product: IProduct }) {
+// memo — на страницах каталога/избранного карточки рендерятся десятками;
+// product приходит из React Query (структурное сравнение сохраняет ссылку
+// на неизменившиеся элементы), так что при перерисовке родителя из-за
+// несвязанного стейта (фильтры, пагинация другой секции) сами карточки
+// пропускают повторный рендер.
+export const ProductCard = memo(function ProductCard({
+  product,
+}: {
+  product: IProduct;
+}) {
   const image = resolveImageUrl(product.images?.[0]);
   const addItem = useCartStore((state) => state.addItem);
   const isFavorite = useIsFavorite(product.id);
@@ -40,13 +50,11 @@ export function ProductCard({ product }: { product: IProduct }) {
   }
 
   return (
-    <article className="border-gold-200/50 hover:border-gold-300/70 group relative flex flex-col overflow-hidden rounded-2xl border bg-card transition-all hover:-translate-y-1 hover:shadow-[0_16px_28px_-10px_rgba(184,147,91,0.22)]">
+    <article className="border-gold-200/50 hover:border-gold-300/70 group bg-card relative flex flex-col overflow-hidden rounded-2xl border transition-colors duration-150">
       <CornerFlourish corner="tl" className="z-10" />
-      {/* Лёгкий диагональный блик при наведении — не мешает содержимому. */}
-      <div className="bg-celestial-shimmer pointer-events-none absolute inset-0 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-hover:animate-celestial-shimmer" />
 
       {hasDiscount && (
-        <span className="absolute top-3 left-3 z-20 rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white shadow">
+        <span className="bg-destructive absolute top-3 left-3 z-20 rounded-full px-2 py-0.5 text-xs font-semibold text-white">
           -{discountPercent}%
         </span>
       )}
@@ -120,4 +128,4 @@ export function ProductCard({ product }: { product: IProduct }) {
       </div>
     </article>
   );
-}
+});

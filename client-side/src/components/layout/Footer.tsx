@@ -6,7 +6,7 @@ import { SparkleField } from "@/components/decorative/SparkleField";
 
 export function Footer() {
   return (
-    <footer className="bg-celestial-pattern relative overflow-hidden border-t border-gold-200/40 bg-gradient-to-b from-white to-emerald-50/40 dark:from-neutral-950 dark:to-emerald-950/20">
+    <footer className="bg-celestial-pattern bg-background relative overflow-hidden border-t border-gold-200/40">
       <SparkleField count={4} />
 
       <div className="relative mx-auto w-full max-w-6xl px-4 pt-14 pb-8">

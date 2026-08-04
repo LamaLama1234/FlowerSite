@@ -54,7 +54,7 @@ const DELIVERY_OPTIONS = [
 const TIME_SLOTS = ["09:00–12:00", "12:00–15:00", "15:00–18:00", "18:00–21:00"];
 
 const timeOptionClass = (active: boolean) =>
-  `rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+  `rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
     active
       ? "ring-gold-300/50 border-primary bg-primary/10 text-primary ring-1"
       : "border-gold-200/50 text-muted-foreground hover:text-foreground"
@@ -282,7 +282,7 @@ export function Checkout() {
                 key={option.value}
                 type="button"
                 onClick={() => updateField("deliveryType", option.value)}
-                className={`rounded-lg border py-2.5 text-sm font-medium transition-all ${
+                className={`rounded-lg border py-2.5 text-sm font-medium transition-colors ${
                   form.deliveryType === option.value
                     ? "ring-gold-300/50 border-primary bg-primary/10 text-primary ring-1"
                     : "border-gold-200/50 text-muted-foreground hover:text-foreground"

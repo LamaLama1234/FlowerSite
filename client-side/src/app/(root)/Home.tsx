@@ -34,7 +34,7 @@ export function Home() {
   return (
     <main className="flex flex-1 flex-col">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-background to-emerald-100 dark:from-emerald-950/40 dark:via-background dark:to-emerald-900/30">
+      <section className="bg-background relative overflow-hidden">
         <SparkleField count={5} />
 
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center sm:py-32">
@@ -43,14 +43,14 @@ export function Home() {
             Свежесть и эстетика каждый день
           </span>
 
-          <h1 className="font-heading max-w-3xl text-4xl tracking-tight text-balance sm:text-6xl">
-            GreenArt — Цветы и искусство
-            <span className="text-primary"> в вашем доме</span>
+          <h1 className="font-heading max-w-2xl text-5xl tracking-tight text-balance sm:text-7xl">
+            GreenArt
           </h1>
 
           <p className="text-muted-foreground max-w-xl text-lg text-pretty">
-            Авторские букеты, растения и декор ручной работы. Превращаем
-            обычные дни в маленькие праздники — с заботой о каждой детали.
+            Цветы и искусство в вашем доме — авторские букеты, растения и
+            декор ручной работы. Превращаем обычные дни в маленькие
+            праздники, с заботой о каждой детали.
           </p>
 
           <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
@@ -236,26 +236,22 @@ function CategoryCta({
   return (
     <Link
       href={href}
-      className="ring-gold-300/40 group relative flex flex-col gap-4 overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50 via-white to-gold-50 p-8 shadow-[0_0_30px_-6px_rgba(184,147,91,0.25)] ring-1 transition-all hover:-translate-y-1 hover:ring-2 hover:ring-gold-400/70 hover:shadow-[0_0_45px_-6px_rgba(184,147,91,0.45)] dark:from-emerald-950/40 dark:via-background dark:to-gold-700/20"
+      className="border-gold-200/50 hover:border-gold-300/70 group bg-card relative flex flex-col gap-4 overflow-hidden rounded-2xl border p-8 transition-colors duration-150"
     >
       <CornerFlourish corner="tr" className="text-gold-400/50 size-10" />
 
-      {/* Мягкий "небесный" блик в углу — мрамор с золотой прожилкой, не заливка */}
-      <div className="pointer-events-none absolute -top-10 -left-10 size-40 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.9),transparent_70%)] opacity-70" />
-      <Sparkles className="text-gold-400/15 pointer-events-none absolute -right-4 -bottom-4 size-28 transition-transform duration-300 group-hover:scale-110" />
-
-      <span className="bg-primary text-primary-foreground ring-gold-300/50 relative flex size-14 items-center justify-center rounded-2xl shadow-sm ring-1 transition-transform duration-300 group-hover:scale-105">
+      <span className="bg-primary/10 text-primary flex size-14 items-center justify-center rounded-xl">
         {icon}
       </span>
 
-      <div className="relative">
+      <div>
         <h3 className="font-heading text-2xl text-primary">{title}</h3>
         <p className="text-muted-foreground mt-2 text-sm">{text}</p>
       </div>
 
-      <span className="text-primary relative mt-auto inline-flex items-center gap-1.5 text-sm font-semibold">
+      <span className="text-primary mt-auto inline-flex items-center gap-1.5 text-sm font-semibold">
         Смотреть каталог
-        <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
+        <ArrowRight className="size-4" />
       </span>
     </Link>
   );
@@ -271,7 +267,7 @@ function Feature({
   text: string;
 }) {
   return (
-    <div className="border-gold-200/50 hover:border-gold-300/70 relative rounded-2xl border bg-card p-6 transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-emerald-900/5">
+    <div className="border-gold-200/50 hover:border-gold-300/70 rounded-2xl border bg-card p-6 transition-colors duration-150">
       <span className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-xl">
         {icon}
       </span>

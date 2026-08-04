@@ -161,7 +161,7 @@ export function AdminCategories() {
         onSubmit={handleSubmit}
         className="glass-panel flex h-fit flex-col gap-3 rounded-2xl p-5"
       >
-        <h2 className="text-primary flex items-center justify-between text-sm font-semibold">
+        <h2 className="text-primary flex items-center justify-between text-lg font-semibold">
           {editingId ? "Редактировать категорию" : "Новая категория"}
           {editingId && (
             <button

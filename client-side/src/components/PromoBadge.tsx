@@ -31,12 +31,9 @@ export function PromoBadge() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="ring-gold-300/50 bg-primary text-primary-foreground fixed right-5 bottom-5 z-40 flex items-center gap-2 rounded-full py-2.5 pr-4 pl-3 text-sm font-semibold shadow-[0_4px_20px_-4px_rgba(184,147,91,0.5)] ring-1 transition-transform hover:-translate-y-0.5 hover:shadow-[0_6px_24px_-4px_rgba(184,147,91,0.65)]"
+        className="ring-gold-300/50 bg-primary text-primary-foreground hover:bg-primary/90 fixed right-5 bottom-5 z-40 flex items-center gap-2 rounded-full py-2.5 pr-4 pl-3 text-sm font-semibold shadow-sm ring-1 transition-colors duration-150"
       >
-        <span className="relative flex size-2.5 shrink-0">
-          <span className="bg-gold-300 absolute inline-flex size-full animate-ping rounded-full opacity-75" />
-          <span className="bg-gold-400 relative inline-flex size-2.5 rounded-full" />
-        </span>
+        <span className="bg-gold-400 size-2.5 shrink-0 rounded-full" />
         <span className="hidden sm:inline">Промокод на первый заказ</span>
         <span className="sm:hidden">Промокод −10%</span>
       </button>

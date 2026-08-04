@@ -120,7 +120,7 @@ export function Dashboard({ hasAccessToken }: DashboardProps) {
       <section className="glass-panel relative mb-10 flex items-center gap-4 rounded-2xl p-6">
         <CornerFlourish corner="tl" />
         <CornerFlourish corner="br" />
-        <span className="bg-primary/10 text-primary relative flex size-14 shrink-0 items-center justify-center rounded-2xl text-xl font-semibold">
+        <span className="bg-primary/10 text-primary relative flex size-14 shrink-0 items-center justify-center rounded-xl text-xl font-semibold">
           {(user.name || user.email).charAt(0).toUpperCase()}
         </span>
         <div className="relative min-w-0 flex-1">
