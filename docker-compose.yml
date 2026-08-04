@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_BD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_BD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ./server-side
+    restart: unless-stopped
+    env_file:
+      - ./server-side/.env.production.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "127.0.0.1:5001:5001"
+
+  client:
+    build:
+      context: ./client-side
+      args:
+        APP_ENV: ${APP_ENV}
+        APP_URL: ${APP_URL}
+        APP_DOMAIN: ${APP_DOMAIN}
+        SERVER_URL: ${SERVER_URL}
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  postgres_data:
+  uploads:

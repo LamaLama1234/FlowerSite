@@ -21,6 +21,7 @@ const SERVER_URL = process.env.SERVER_URL ?? "http://localhost:5001";
 const serverUrl = new URL(SERVER_URL);
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   turbopack: {
     root: PROJECT_ROOT,
   },
