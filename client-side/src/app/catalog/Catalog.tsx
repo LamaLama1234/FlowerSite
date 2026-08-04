@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import type { ProductSortBy } from "@/shared/types/product.interface";
 const PAGE_SIZE = 12;
 
 const SORT_OPTIONS: { value: ProductSortBy; label: string }[] = [
+  { value: "popularity", label: "Сначала популярные" },
   { value: "newest", label: "Сначала новые" },
   { value: "price_asc", label: "Сначала дешевле" },
   { value: "price_desc", label: "Сначала дороже" },
@@ -24,7 +26,8 @@ export function Catalog() {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [sortBy, setSortBy] = useState<ProductSortBy>("newest");
+  const [sortBy, setSortBy] = useState<ProductSortBy>("popularity");
+  const [discountedOnly, setDiscountedOnly] = useState(false);
   const [minPriceInput, setMinPriceInput] = useState("");
   const [maxPriceInput, setMaxPriceInput] = useState("");
   const [priceRange, setPriceRange] = useState({ min: "", max: "" });
@@ -33,6 +36,7 @@ export function Catalog() {
     debounced,
     categoryId,
     sortBy,
+    discountedOnly,
     priceRange,
   });
 
@@ -63,27 +67,75 @@ export function Catalog() {
     appliedFilters.debounced !== debounced ||
     appliedFilters.categoryId !== categoryId ||
     appliedFilters.sortBy !== sortBy ||
+    appliedFilters.discountedOnly !== discountedOnly ||
     appliedFilters.priceRange.min !== priceRange.min ||
     appliedFilters.priceRange.max !== priceRange.max
   ) {
-    setAppliedFilters({ debounced, categoryId, sortBy, priceRange });
+    setAppliedFilters({ debounced, categoryId, sortBy, discountedOnly, priceRange });
     setPage(1);
   }
 
-  // Переход из шапки может содержать ?category=<id> (кнопки быстрого
-  // фильтра) — подхватываем его один раз при маунте. Как и с OAuth-кодом
-  // на /dashboard, читаем window.location напрямую в эффекте, а не через
-  // useSearchParams(), чтобы не тащить Suspense-границу ради этого.
-  // Синхронный setState здесь намеренный: ленивая инициализация через
-  // window в useState дала бы разные значения на SSR и при гидратации
-  // (window не существует на сервере) — ровно тот hydration mismatch,
-  // который уже приходилось чинить на /dashboard.
+  // Восстанавливаем все фильтры из query-строки — так и переход из шапки/
+  // главной с ?category=<id>, и возврат кнопкой "Назад в каталог" со страницы
+  // товара (см. ProductDetail.tsx — там router.back(), а не Link на голый
+  // /catalog) приходят на тот же набор фильтров. useSearchParams() (а не
+  // window.location.search в mount-only эффекте) — намеренно: App Router не
+  // перемонтирует Catalog при клиентской навигации между двумя /catalog?
+  // category=... с одного маршрута, а window.location в эффекте с [] тогда
+  // просто не перечитался бы. useSearchParams реактивен к таким переходам.
+  // Заодно синхронизируем appliedFilters/page тем же значением — иначе
+  // эффект ниже (сброс страницы при смене фильтров) увидит "изменение" и
+  // тут же обнулит восстановленную страницу обратно на первую.
+  const searchParams = useSearchParams();
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const category = params.get("category");
+    const params = new URLSearchParams(searchParams.toString());
+    const urlCategoryId = params.get("category") ?? "";
+    const urlSearch = params.get("q") ?? "";
+    const urlSortBy = (params.get("sort") as ProductSortBy | null) ?? "popularity";
+    const urlDiscountedOnly = params.get("discounted") === "true";
+    const urlMinPrice = params.get("min") ?? "";
+    const urlMaxPrice = params.get("max") ?? "";
+    const urlPage = Math.max(1, Number(params.get("page")) || 1);
+    const urlPriceRange = { min: urlMinPrice, max: urlMaxPrice };
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (category) setCategoryId(category);
-  }, []);
+    setCategoryId(urlCategoryId);
+    setSearch(urlSearch);
+    setDebounced(urlSearch);
+    setSortBy(urlSortBy);
+    setDiscountedOnly(urlDiscountedOnly);
+    setMinPriceInput(urlMinPrice);
+    setMaxPriceInput(urlMaxPrice);
+    setPriceRange(urlPriceRange);
+    setPage(urlPage);
+    setAppliedFilters({
+      debounced: urlSearch,
+      categoryId: urlCategoryId,
+      sortBy: urlSortBy,
+      discountedOnly: urlDiscountedOnly,
+      priceRange: urlPriceRange,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.toString()]);
+
+  // Зеркалим текущие применённые фильтры в адресную строку — replaceState,
+  // не push, чтобы не плодить историю на каждое изменение фильтра (иначе
+  // "Назад" из браузера пришлось бы жать по многу раз). Это чтение URL при
+  // возврате (эффект выше) и есть весь механизм "сохранения" фильтров.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (appliedFilters.categoryId) params.set("category", appliedFilters.categoryId);
+    if (appliedFilters.debounced) params.set("q", appliedFilters.debounced);
+    if (appliedFilters.sortBy !== "popularity") params.set("sort", appliedFilters.sortBy);
+    if (appliedFilters.discountedOnly) params.set("discounted", "true");
+    if (appliedFilters.priceRange.min) params.set("min", appliedFilters.priceRange.min);
+    if (appliedFilters.priceRange.max) params.set("max", appliedFilters.priceRange.max);
+    if (page > 1) params.set("page", String(page));
+
+    const query = params.toString();
+    const url = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.replaceState(null, "", url);
+  }, [appliedFilters, page]);
 
   const minPrice = priceRange.min ? Number(priceRange.min) : undefined;
   const maxPrice = priceRange.max ? Number(priceRange.max) : undefined;
@@ -97,10 +149,11 @@ export function Catalog() {
     minPrice,
     maxPrice,
     sortBy,
+    discounted: discountedOnly,
   });
   const products = data?.items;
   const hasFilters = Boolean(
-    debounced || categoryId || priceRange.min || priceRange.max,
+    debounced || categoryId || discountedOnly || priceRange.min || priceRange.max,
   );
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
@@ -184,6 +237,16 @@ export function Catalog() {
               ))}
             </select>
           </div>
+
+          <label className="border-gold-200/50 flex h-full items-center gap-2 rounded-lg border bg-background px-3 py-2.5 text-sm select-none">
+            <input
+              type="checkbox"
+              checked={discountedOnly}
+              onChange={(e) => setDiscountedOnly(e.target.checked)}
+              className="accent-primary size-4"
+            />
+            Со скидкой
+          </label>
 
           <div className="relative w-full lg:ml-auto lg:w-72">
             <label htmlFor="catalog-search" className="sr-only">

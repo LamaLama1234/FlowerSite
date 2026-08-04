@@ -11,6 +11,7 @@ export function useProducts(query: IProductsQuery = {}) {
     minPrice,
     maxPrice,
     sortBy = "newest",
+    discounted = false,
   } = query;
 
   return useQuery({
@@ -23,6 +24,7 @@ export function useProducts(query: IProductsQuery = {}) {
       minPrice ?? "",
       maxPrice ?? "",
       sortBy,
+      discounted,
     ],
     queryFn: () =>
       productService.getAll({
@@ -33,6 +35,7 @@ export function useProducts(query: IProductsQuery = {}) {
         minPrice,
         maxPrice,
         sortBy,
+        discounted,
       }),
     placeholderData: keepPreviousData,
   });

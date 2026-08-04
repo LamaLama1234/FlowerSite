@@ -6,8 +6,10 @@ import { OrderStatusLogService } from './order-status-log.service'
 import { PromoService } from './promo.service'
 import { OrderController } from './order.controller'
 import { TelegramService } from 'src/telegram/telegram.service'
+import { ProductModule } from 'src/product/product.module'
 
 @Module({
+	imports: [ProductModule],
 	controllers: [OrderController],
 	providers: [
 		OrderService,

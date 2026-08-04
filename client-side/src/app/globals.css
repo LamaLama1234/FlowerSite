@@ -61,92 +61,99 @@
   --color-gold-700: var(--gold-700);
 }
 
+/* ---------- Atelier Botanica: палитра с нуля ----------
+   Тёплая бумага + хвойный зелёный + глина вместо прежних
+   бело-золотых "Celestial Luxury" тонов. Имена переменных (gold-*,
+   primary и т.д.) оставлены как есть — на них завязан весь Tailwind-слой
+   по всему проекту, поэтому смена значений здесь каскадом переопределяет
+   цвет на каждой странице без точечных правок классов. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.511 0.096 186.391);
-  --primary-foreground: oklch(0.984 0.014 180.72);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.871 0.006 286.286);
-  --chart-2: oklch(0.552 0.016 285.938);
-  --chart-3: oklch(0.442 0.017 285.786);
-  --chart-4: oklch(0.37 0.013 285.805);
-  --chart-5: oklch(0.274 0.006 286.033);
-  --radius: 0.45rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.6 0.118 184.704);
-  --sidebar-primary-foreground: oklch(0.984 0.014 180.72);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
+  --background: oklch(0.98 0.008 80);
+  --foreground: oklch(0.2 0.014 60);
+  --card: oklch(1 0 0.00001);
+  --card-foreground: oklch(0.2 0.014 60);
+  --popover: oklch(1 0 0.00001);
+  --popover-foreground: oklch(0.2 0.014 60);
+  --primary: oklch(0.36 0.06 152);
+  --primary-foreground: oklch(0.98 0.012 90);
+  --secondary: oklch(0.955 0.01 75);
+  --secondary-foreground: oklch(0.24 0.015 60);
+  --muted: oklch(0.955 0.01 75);
+  --muted-foreground: oklch(0.5 0.02 65);
+  --accent: oklch(0.955 0.01 75);
+  --accent-foreground: oklch(0.24 0.015 60);
+  --destructive: oklch(0.55 0.18 27);
+  --border: oklch(0.89 0.012 70);
+  --input: oklch(0.89 0.012 70);
+  --ring: oklch(0.6 0.03 70);
+  --chart-1: oklch(0.36 0.06 152);
+  --chart-2: oklch(0.55 0.1 45);
+  --chart-3: oklch(0.65 0.03 70);
+  --chart-4: oklch(0.5 0.02 65);
+  --chart-5: oklch(0.3 0.02 60);
+  --radius: 0.3rem;
+  --sidebar: oklch(0.98 0.008 80);
+  --sidebar-foreground: oklch(0.2 0.014 60);
+  --sidebar-primary: oklch(0.36 0.06 152);
+  --sidebar-primary-foreground: oklch(0.98 0.012 90);
+  --sidebar-accent: oklch(0.955 0.01 75);
+  --sidebar-accent-foreground: oklch(0.24 0.015 60);
+  --sidebar-border: oklch(0.89 0.012 70);
+  --sidebar-ring: oklch(0.6 0.03 70);
 
-  --gold-50: #fbf6ea;
-  --gold-100: #f3e6c8;
-  --gold-200: #e8d2a0;
-  --gold-300: #d9bc77;
-  --gold-400: #c5a572;
-  --gold-500: #b8935b;
-  --gold-600: #96773f;
-  --gold-700: #7a5f32;
+  /* Глина/терракота — единственный тёплый акцент вместо золота. */
+  --gold-50: #faf3ec;
+  --gold-100: #f0ddc9;
+  --gold-200: #e3c0a0;
+  --gold-300: #d29d72;
+  --gold-400: #c17f4f;
+  --gold-500: #ab6538;
+  --gold-600: #8a4f2c;
+  --gold-700: #6e3f24;
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.437 0.078 188.216);
-  --primary-foreground: oklch(0.984 0.014 180.72);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --background: oklch(0.17 0.012 60);
+  --foreground: oklch(0.96 0.01 80);
+  --card: oklch(0.21 0.014 60);
+  --card-foreground: oklch(0.96 0.01 80);
+  --popover: oklch(0.21 0.014 60);
+  --popover-foreground: oklch(0.96 0.01 80);
+  --primary: oklch(0.64 0.09 152);
+  --primary-foreground: oklch(0.16 0.02 152);
+  --secondary: oklch(0.27 0.014 60);
+  --secondary-foreground: oklch(0.96 0.01 80);
+  --muted: oklch(0.27 0.014 60);
+  --muted-foreground: oklch(0.68 0.02 70);
+  --accent: oklch(0.27 0.014 60);
+  --accent-foreground: oklch(0.96 0.01 80);
+  --destructive: oklch(0.63 0.17 27);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
-  --chart-1: oklch(0.871 0.006 286.286);
-  --chart-2: oklch(0.552 0.016 285.938);
-  --chart-3: oklch(0.442 0.017 285.786);
-  --chart-4: oklch(0.37 0.013 285.805);
-  --chart-5: oklch(0.274 0.006 286.033);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.704 0.14 182.503);
-  --sidebar-primary-foreground: oklch(0.277 0.046 192.524);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.55 0.02 70);
+  --chart-1: oklch(0.64 0.09 152);
+  --chart-2: oklch(0.65 0.1 45);
+  --chart-3: oklch(0.65 0.03 70);
+  --chart-4: oklch(0.68 0.02 70);
+  --chart-5: oklch(0.8 0.01 75);
+  --sidebar: oklch(0.21 0.014 60);
+  --sidebar-foreground: oklch(0.96 0.01 80);
+  --sidebar-primary: oklch(0.64 0.09 152);
+  --sidebar-primary-foreground: oklch(0.16 0.02 152);
+  --sidebar-accent: oklch(0.27 0.014 60);
+  --sidebar-accent-foreground: oklch(0.96 0.01 80);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.552 0.016 285.938);
+  --sidebar-ring: oklch(0.55 0.02 70);
 
   /* Чуть светлее/насыщеннее, чем в светлой теме — для читаемости на тёмном фоне */
-  --gold-50: #4a3b22;
-  --gold-100: #6b5730;
-  --gold-200: #8c733d;
-  --gold-300: #ad9053;
-  --gold-400: #cbab6c;
-  --gold-500: #ddc389;
-  --gold-600: #ecdcb2;
-  --gold-700: #f6ecd6;
+  --gold-50: #3d2a1c;
+  --gold-100: #5a3d26;
+  --gold-200: #7a5533;
+  --gold-300: #9c6f42;
+  --gold-400: #c1874f;
+  --gold-500: #d9a06c;
+  --gold-600: #eab98c;
+  --gold-700: #f5d3b0;
 }
 
 @layer base {
@@ -158,10 +165,16 @@
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 }
 
-/* ---------- Celestial Luxury: общие декоративные примитивы ---------- */
+/* ---------- Atelier Botanica: общие декоративные примитивы ---------- */
 
 /* Конвенция радиусов: внешняя поверхность (карточка, панель, диалог) —
    rounded-2xl; всё вложенное на один уровень внутрь — на шаг меньше
@@ -171,70 +184,35 @@
 /* Сплошная панель — единая точка для всех карточных поверхностей сайта. */
 @utility glass-panel {
   background-color: var(--card);
-  border: 1px solid rgba(232, 210, 160, 0.45);
+  border: 1px solid var(--gold-200);
 }
 
 .dark .glass-panel {
-  border-color: rgba(197, 165, 114, 0.25);
+  border-color: color-mix(in oklch, var(--gold-300) 60%, transparent);
 }
 
-/* Едва заметный узор из мелких ромбов — фон крупных секций. */
+/* Едва заметный узор из веточек — фон крупных секций вместо ромбовой сетки. */
 @utility bg-celestial-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M28 6 L34 28 L28 50 L22 28 Z' fill='%23B8935B' fill-opacity='0.05'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M8 56 C16 44 20 36 32 8' stroke='%23AB6538' stroke-width='1' fill='none' stroke-opacity='0.07'/%3E%3Ccircle cx='32' cy='8' r='1.6' fill='%23AB6538' fill-opacity='0.07'/%3E%3C/svg%3E");
   background-repeat: repeat;
 }
 
+/* Медленный дрейф лепестков — вертикальный бег + едва заметное покачивание. */
 @keyframes celestial-twinkle {
-  0%,
-  100% {
-    opacity: 0.15;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1);
-  }
-}
-
-@keyframes celestial-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-@keyframes celestial-shimmer {
   0% {
-    background-position: -150% 0;
+    opacity: 0;
+    transform: translateY(-6px) rotate(-4deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(4px) rotate(4deg);
   }
   100% {
-    background-position: 250% 0;
+    opacity: 0;
+    transform: translateY(14px) rotate(-4deg);
   }
 }
 
 @utility animate-celestial-twinkle {
-  animation: celestial-twinkle 3.2s ease-in-out infinite;
-}
-
-@utility animate-celestial-float {
-  animation: celestial-float 5s ease-in-out infinite;
-}
-
-/* Диагональный блик — применять вместе с animate-celestial-shimmer на hover. */
-@utility bg-celestial-shimmer {
-  background-image: linear-gradient(
-    110deg,
-    transparent 35%,
-    rgba(255, 255, 255, 0.55) 50%,
-    transparent 65%
-  );
-  background-size: 250% 100%;
-  background-repeat: no-repeat;
-}
-
-@utility animate-celestial-shimmer {
-  animation: celestial-shimmer 1.4s ease-in-out;
+  animation: celestial-twinkle 4.5s ease-in-out infinite;
 }

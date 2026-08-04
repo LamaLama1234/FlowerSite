@@ -24,4 +24,15 @@ export interface IProductInput
   categoryId: string;
 }
 
-export type ProductSortBy = "newest" | "price_asc" | "price_desc";
+export type ProductSortBy =
+  | "popularity"
+  | "newest"
+  | "price_asc"
+  | "price_desc";
+
+// Самый продаваемый товар категории — для hero-слайдера на главной
+// (см. ProductService.getCategoryChampions на бэкенде).
+export interface ICategoryChampion {
+  category: Pick<ICategory, "id" | "title">;
+  product: IProduct;
+}

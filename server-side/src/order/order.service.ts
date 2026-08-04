@@ -10,6 +10,7 @@ import { parsePagination } from 'src/common/pagination'
 import { PromoService } from './promo.service'
 import { OrderStatusLogService } from './order-status-log.service'
 import { WELCOME_PROMO_CODE } from './promo.constants'
+import { ProductService } from 'src/product/product.service'
 
 // Оплата (ЮKassa, вебхук) вынесена в OrderPaymentService, аналитика — в
 // OrderAnalyticsService, промокоды — в PromoService, запись лога статусов —
@@ -21,7 +22,8 @@ export class OrderService {
         private prisma: PrismaService,
         private readonly telegramService: TelegramService,
         private readonly statusLog: OrderStatusLogService,
-        private readonly promoService: PromoService
+        private readonly promoService: PromoService,
+        private readonly productService: ProductService
     ) {}
 
     async getAll(user: { id: string, role: string }, searchTerm?: string, page?: string, limit?: string) {
@@ -260,6 +262,12 @@ export class OrderService {
             })
 
         await this.statusLog.logStatusChange(orderId, status as EnumOrderStatus, changedBy, source)
+
+        // Не блокируем ответ пересчётом тега "популярное" по всей базе
+        // товаров — это фоновая переоценка, а не часть смены статуса заказа.
+        this.productService.recalculatePopularTags().catch((error) => {
+            console.error('Не удалось пересчитать теги "популярное":', error)
+        })
 
         return updated
     }

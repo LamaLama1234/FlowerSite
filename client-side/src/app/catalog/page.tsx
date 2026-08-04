@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 
 import { Catalog } from "./Catalog";
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function CatalogPage() {
-  return <Catalog />;
+  return (
+    <Suspense>
+      <Catalog />
+    </Suspense>
+  );
 }

@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Flower2, Heart, Minus, Plus, ShoppingCart, Tag } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Flower2, Heart, Minus, Plus, ShoppingCart, Star, Tag } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
+import { Carousel } from "@/components/ui/carousel";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { useProduct } from "@/hooks/useProduct";
@@ -14,11 +16,13 @@ import { useRelatedProducts } from "@/hooks/useRelatedProducts";
 import { useCartStore } from "@/stores/cart.store";
 import { useFavoritesStore, useIsFavorite } from "@/stores/favorites.store";
 import { formatPrice, resolveImageUrl } from "@/utils/product";
+import { POPULAR_TAG } from "@/constants/product.constants";
 import { CornerFlourish } from "@/components/decorative/CornerFlourish";
 import { GoldDivider } from "@/components/decorative/GoldDivider";
 import { cn } from "@/lib/utils";
 
 export function ProductDetail({ id }: { id: string }) {
+  const router = useRouter();
   const { data: product, isLoading, isError } = useProduct(id);
   const { data: relatedProducts } = useRelatedProducts(id);
   const [activeImage, setActiveImage] = useState(0);
@@ -27,14 +31,18 @@ export function ProductDetail({ id }: { id: string }) {
   const isFavorite = useIsFavorite(id);
   const toggleFavorite = useFavoritesStore((state) => state.toggle);
 
+  // router.back() вместо Link на /catalog — возвращает на тот же URL с
+  // теми же query-параметрами фильтров, с которого ушли (Catalog.tsx
+  // держит их в адресной строке через history.replaceState).
   const backLink = (
-    <Link
-      href="/catalog"
+    <button
+      type="button"
+      onClick={() => router.back()}
       className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm font-medium"
     >
       <ArrowLeft className="size-4" />
       Назад в каталог
-    </Link>
+    </button>
   );
 
   if (isLoading) {
@@ -42,7 +50,7 @@ export function ProductDetail({ id }: { id: string }) {
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
         {backLink}
         <div className="grid gap-8 sm:grid-cols-2">
-          <div className="aspect-square animate-pulse rounded-2xl bg-muted" />
+          <div className="aspect-4/5 animate-pulse rounded-2xl bg-muted" />
           <div className="flex flex-col gap-3">
             <div className="h-6 w-1/3 animate-pulse rounded bg-muted" />
             <div className="h-8 w-2/3 animate-pulse rounded bg-muted" />
@@ -69,7 +77,20 @@ export function ProductDetail({ id }: { id: string }) {
   }
 
   const images = product.images?.length ? product.images : [];
-  const mainImage = resolveImageUrl(images[activeImage]);
+  const gallerySlides = images
+    .map(resolveImageUrl)
+    .filter((src): src is string => Boolean(src))
+    .map((src, i) => (
+      <Image
+        key={src + i}
+        src={src}
+        alt={product.title}
+        fill
+        unoptimized
+        sizes="(min-width: 640px) 50vw, 100vw"
+        className="object-cover"
+      />
+    ));
   const hasDiscount = Boolean(
     product.oldPrice && product.oldPrice > product.price,
   );
@@ -94,20 +115,19 @@ export function ProductDetail({ id }: { id: string }) {
 
       <div className="grid gap-8 sm:grid-cols-2">
         <div className="flex flex-col gap-3">
-          <div className="glass-panel relative aspect-square overflow-hidden rounded-2xl p-2">
+          <div className="glass-panel relative overflow-hidden rounded-2xl p-2">
             <CornerFlourish corner="tl" className="z-10" />
             <CornerFlourish corner="br" className="z-10" />
-            {mainImage ? (
-              <Image
-                src={mainImage}
-                alt={product.title}
-                fill
-                unoptimized
-                sizes="(min-width: 640px) 50vw, 100vw"
-                className="object-cover"
+            {gallerySlides.length > 0 ? (
+              <Carousel
+                slides={gallerySlides}
+                aspectClassName="aspect-4/5"
+                activeIndex={activeImage}
+                onActiveIndexChange={setActiveImage}
+                showDots={false}
               />
             ) : (
-              <div className="flex size-full items-center justify-center text-muted-foreground">
+              <div className="flex aspect-4/5 items-center justify-center text-muted-foreground">
                 <Flower2 className="size-16" />
               </div>
             )}
@@ -181,15 +201,27 @@ export function ProductDetail({ id }: { id: string }) {
 
           {product.tags.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-2">
-              {product.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="border-gold-200/60 bg-gold-50 text-gold-700 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium"
-                >
-                  <Tag className="size-3" />
-                  {tag}
-                </span>
-              ))}
+              {product.tags.map((tag) => {
+                const isPopular = tag === POPULAR_TAG;
+                return (
+                  <span
+                    key={tag}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium",
+                      isPopular
+                        ? "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-400"
+                        : "border-border bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {isPopular ? (
+                      <Star className="size-3 text-amber-500" strokeWidth={1.5} />
+                    ) : (
+                      <Tag className="size-3" />
+                    )}
+                    {tag}
+                  </span>
+                );
+              })}
             </div>
           )}
 

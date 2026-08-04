@@ -31,9 +31,10 @@ export class ProductController {
 		@Query('categoryId') categoryId?: string,
 		@Query('minPrice') minPrice?: string,
 		@Query('maxPrice') maxPrice?: string,
-		@Query('sortBy') sortBy?: string
+		@Query('sortBy') sortBy?: string,
+		@Query('discounted') discounted?: string
 	) {
-		return this.productService.getAll(searchTerm, undefined, page, limit, categoryId, minPrice, maxPrice, sortBy)
+		return this.productService.getAll(searchTerm, undefined, page, limit, categoryId, minPrice, maxPrice, sortBy, discounted)
 	}
 	@Get('by-id/:id')
 	async getById(@Param('id') id: string) {
@@ -53,6 +54,11 @@ export class ProductController {
 	@Get('discounted')
 	async getDiscounted() {
 		return this.productService.getDiscounted()
+	}
+
+	@Get('category-champions')
+	async getCategoryChampions() {
+		return this.productService.getCategoryChampions()
 	}
 
 	@Get('related/:id')
@@ -84,6 +90,17 @@ export class ProductController {
     ) {
         return this.productService.update(id, dto, userRole); // Передаем
     }
+
+	// Тег "популярное" пересчитывается автоматически при смене статуса
+	// заказа (см. order.service.ts) — этот эндпоинт нужен только чтобы
+	// админ мог форсировать пересчёт вручную, не дожидаясь следующего заказа.
+	@UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles('ADMIN')
+	@HttpCode(200)
+	@Post('recalculate-popular')
+	async recalculatePopularTags() {
+		return this.productService.recalculatePopularTags()
+	}
 
 	@UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles('ADMIN')

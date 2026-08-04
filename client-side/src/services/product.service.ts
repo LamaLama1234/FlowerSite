@@ -1,6 +1,7 @@
 import { axiosClassic, axiosWithAuth } from "@/api/axios";
 import { getProductsUrl } from "@/constants/api.constants";
 import type {
+  ICategoryChampion,
   IProduct,
   IProductInput,
   ProductSortBy,
@@ -15,6 +16,7 @@ export interface IProductsQuery {
   minPrice?: number;
   maxPrice?: number;
   sortBy?: ProductSortBy;
+  discounted?: boolean;
 }
 
 export const productService = {
@@ -30,6 +32,7 @@ export const productService = {
           minPrice: query.minPrice,
           maxPrice: query.maxPrice,
           sortBy: query.sortBy,
+          discounted: query.discounted ? "true" : undefined,
         },
       },
     );
@@ -60,6 +63,13 @@ export const productService = {
   async getDiscounted() {
     const { data } = await axiosClassic.get<IProduct[]>(
       getProductsUrl("/discounted"),
+    );
+    return data;
+  },
+
+  async getCategoryChampions() {
+    const { data } = await axiosClassic.get<ICategoryChampion[]>(
+      getProductsUrl("/category-champions"),
     );
     return data;
   },

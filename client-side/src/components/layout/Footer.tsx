@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Leaf, Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 
 import { GoldDivider } from "@/components/decorative/GoldDivider";
 import { SparkleField } from "@/components/decorative/SparkleField";
@@ -13,9 +14,13 @@ export function Footer() {
         <div className="grid gap-10 sm:grid-cols-3">
           <div>
             <Link href="/" className="flex items-center gap-2.5">
-              <span className="ring-gold-300/40 flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground ring-1">
-                <Leaf className="size-5" />
-              </span>
+              <Image
+                src="/logo.png"
+                alt="GreenArt"
+                width={78}
+                height={64}
+                className="shrink-0"
+              />
               <span className="font-heading text-xl tracking-wide text-primary">
                 GreenArt
               </span>

@@ -281,7 +281,19 @@ export function Checkout() {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => updateField("deliveryType", option.value)}
+                onClick={() => {
+                  // "Как можно быстрее" — обещание курьера, для самовывоза
+                  // не показываем этот вариант и сбрасываем его, если был
+                  // выбран до переключения на самовывоз.
+                  setForm((prev) => ({
+                    ...prev,
+                    deliveryType: option.value,
+                    isAsap:
+                      option.value === EnumDeliveryType.PICKUP
+                        ? false
+                        : prev.isAsap,
+                  }));
+                }}
                 className={`rounded-lg border py-2.5 text-sm font-medium transition-colors ${
                   form.deliveryType === option.value
                     ? "ring-gold-300/50 border-primary bg-primary/10 text-primary ring-1"
@@ -321,19 +333,21 @@ export function Checkout() {
 
         <Field label="Время доставки">
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                updateField("isAsap", true);
-                updateField("deliveryTimeSlot", "");
-              }}
-              className={timeOptionClass(form.isAsap)}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Zap className="size-3.5" />
-                Как можно быстрее
-              </span>
-            </button>
+            {form.deliveryType === EnumDeliveryType.COURIER && (
+              <button
+                type="button"
+                onClick={() => {
+                  updateField("isAsap", true);
+                  updateField("deliveryTimeSlot", "");
+                }}
+                className={timeOptionClass(form.isAsap)}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Zap className="size-3.5" />
+                  Как можно быстрее
+                </span>
+              </button>
+            )}
             {TIME_SLOTS.map((slot) => (
               <button
                 key={slot}

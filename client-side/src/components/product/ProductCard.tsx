@@ -1,12 +1,14 @@
 import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Flower2, Heart, ShoppingCart } from "lucide-react";
+import { Flower2, Heart, ShoppingCart, Star } from "lucide-react";
 import toast from "react-hot-toast";
+import { m } from "motion/react";
 
 import { Button } from "@/components/ui/button";
 import type { IProduct } from "@/shared/types/product.interface";
 import { formatPrice, resolveImageUrl } from "@/utils/product";
+import { POPULAR_TAG } from "@/constants/product.constants";
 import { useCartStore } from "@/stores/cart.store";
 import { useFavoritesStore, useIsFavorite } from "@/stores/favorites.store";
 import { CornerFlourish } from "@/components/decorative/CornerFlourish";
@@ -32,6 +34,7 @@ export const ProductCard = memo(function ProductCard({
   const discountPercent = hasDiscount
     ? Math.round((1 - product.price / (product.oldPrice as number)) * 100)
     : null;
+  const isPopular = product.tags?.includes(POPULAR_TAG) ?? false;
 
   function handleAddToCart() {
     addItem(product);
@@ -53,30 +56,47 @@ export const ProductCard = memo(function ProductCard({
     <article className="border-gold-200/50 hover:border-gold-300/70 group bg-card relative flex flex-col overflow-hidden rounded-2xl border transition-colors duration-150">
       <CornerFlourish corner="tl" className="z-10" />
 
-      {hasDiscount && (
-        <span className="bg-destructive absolute top-3 left-3 z-20 rounded-full px-2 py-0.5 text-xs font-semibold text-white">
-          -{discountPercent}%
-        </span>
+      {(hasDiscount || isPopular) && (
+        <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-1">
+          {hasDiscount && (
+            <span className="bg-destructive rounded-full px-2 py-0.5 text-xs font-semibold text-white">
+              -{discountPercent}%
+            </span>
+          )}
+          {isPopular && (
+            <span className="flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
+              <Star className="size-3" strokeWidth={1.5} />
+              Популярное
+            </span>
+          )}
+        </div>
       )}
 
-      <button
+      <m.button
         type="button"
         onClick={handleToggleFavorite}
+        whileTap={{ scale: 0.85 }}
         aria-label={
           isFavorite ? "Убрать из избранного" : "Добавить в избранное"
         }
         aria-pressed={isFavorite}
         className="text-muted-foreground hover:text-destructive absolute top-2 right-2 z-20 flex size-8 items-center justify-center rounded-full bg-white/80 backdrop-blur transition-colors dark:bg-black/40"
       >
-        <Heart
-          className={cn("size-4", isFavorite && "fill-destructive text-destructive")}
-        />
-      </button>
+        <m.span
+          animate={{ scale: isFavorite ? [1, 1.25, 1] : 1 }}
+          transition={{ duration: 0.25 }}
+          className="flex"
+        >
+          <Heart
+            className={cn("size-4", isFavorite && "fill-destructive text-destructive")}
+          />
+        </m.span>
+      </m.button>
 
       {/* display: contents — ссылка не ломает flex-раскладку article,
           кнопка "В корзину" ниже остаётся вне неё и не триггерит переход. */}
       <Link href={`/catalog/${product.id}`} className="contents">
-        <div className="relative aspect-square overflow-hidden bg-muted">
+        <div className="relative aspect-4/5 overflow-hidden bg-muted">
           {image ? (
             <Image
               src={image}

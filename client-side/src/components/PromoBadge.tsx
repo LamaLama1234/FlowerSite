@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Copy, Gift } from "lucide-react";
 import toast from "react-hot-toast";
+import { m } from "motion/react";
 
 import {
   Dialog,
@@ -28,20 +29,23 @@ export function PromoBadge() {
 
   return (
     <>
-      <button
+      <m.button
         type="button"
         onClick={() => setOpen(true)}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.3, ease: "easeOut" }}
         className="ring-gold-300/50 bg-primary text-primary-foreground hover:bg-primary/90 fixed right-5 bottom-5 z-40 flex items-center gap-2 rounded-full py-2.5 pr-4 pl-3 text-sm font-semibold shadow-sm ring-1 transition-colors duration-150"
       >
         <span className="bg-gold-400 size-2.5 shrink-0 rounded-full" />
         <span className="hidden sm:inline">Промокод на первый заказ</span>
         <span className="sm:hidden">Промокод −10%</span>
-      </button>
+      </m.button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="text-center">
           <DialogHeader className="items-center text-center">
-            <span className="bg-primary/10 text-primary mb-1 flex size-12 items-center justify-center rounded-full">
+            <span className="bg-primary/10 text-primary mb-1 flex size-12 items-center justify-center rounded-xl">
               <Gift className="size-6" />
             </span>
             <DialogTitle className="text-2xl">−10% на первый заказ</DialogTitle>
